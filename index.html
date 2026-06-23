@@ -257,19 +257,19 @@
   <div id="app" style="display:none">
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('elo', this)">
+      <button class="tab-btn active" onclick="switchTab('picks', this)">
+        <span class="tab-icon">⚽</span>Consolidado
+      </button>
+      <button class="tab-btn" onclick="switchTab('elo', this)">
         <span class="tab-icon">📊</span>ELO
       </button>
       <button class="tab-btn" onclick="switchTab('odds', this)">
         <span class="tab-icon">💰</span>Odds
       </button>
-      <button class="tab-btn" onclick="switchTab('picks', this)">
-        <span class="tab-icon">⚽</span>Consolidado
-      </button>
     </div>
 
     <!-- PESTAÑA ELO -->
-    <div id="tab-elo" class="tab-panel active">
+    <div id="tab-elo" class="tab-panel">
       <table class="data-table">
         <thead>
           <tr>
@@ -301,7 +301,7 @@
     </div>
 
     <!-- PESTAÑA CONSOLIDADO -->
-    <div id="tab-picks" class="tab-panel">
+    <div id="tab-picks" class="tab-panel active">
       <div class="picks-grid" id="picks-grid"></div>
     </div>
 
@@ -367,14 +367,14 @@ function renderOdds(picks) {
   if (!picks.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos.</td></tr>'; return; }
 
   tbody.innerHTML = picks.map(p => {
-    const hasH2h = p.p_local != null;
+    const hasH2h = p.market_p_local != null;
     const hasOU  = p.ou_linea != null;
 
     const probs = hasH2h ? `
       <div class="prob-group">
-        <div class="prob-pill pp-home">${pct(p.p_local)}</div>
-        <div class="prob-pill pp-draw">${pct(p.p_empate)}</div>
-        <div class="prob-pill pp-away">${pct(p.p_visit)}</div>
+        <div class="prob-pill pp-home">${pct(p.market_p_local)}</div>
+        <div class="prob-pill pp-draw">${pct(p.market_p_empate)}</div>
+        <div class="prob-pill pp-away">${pct(p.market_p_visit)}</div>
       </div>` : '<span style="color:#4a5068">Sin cuotas</span>';
 
     const ou = hasOU ? `
@@ -390,7 +390,7 @@ function renderOdds(picks) {
       <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
       <td>${probs}</td>
       <td>${ou}</td>
-      <td>${p.we_market != null ? `<strong>${p.we_market}</strong>` : '—'}</td>
+      <td>${p.we_market != null ? `<strong>${(p.we_market * 100).toFixed(1)}%</strong>` : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -428,7 +428,7 @@ function renderPicks(picks) {
 
       <div class="card-body">
         <div>
-          <div class="card-section-title">Probabilidades</div>
+          <div class="card-section-title">Probabilidades Modelo</div>
           <div class="card-probs">
             <div class="card-prob-row">
               <span class="card-prob-label">Local</span>
@@ -468,14 +468,6 @@ function renderPicks(picks) {
         <span style="font-size:0.68rem;color:#4a5068;align-self:center">Alt:</span>
         <div class="alt-chip"><b>${p.pick_2}</b>${p.pts_2} pts</div>
         <div class="alt-chip"><b>${p.pick_3}</b>${p.pts_3} pts</div>
-      </div>
-
-      <div class="card-we">
-        <span>We ELO <strong>${p.we_elo}</strong></span>
-        ${p.we_market != null ? `<span>We Mercado <strong>${p.we_market}</strong></span>` : ''}
-        <span>We Final <strong>${p.we_final}</strong></span>
-        <span>λ local <strong>${p.lambda_local}</strong></span>
-        <span>λ visit. <strong>${p.lambda_visit}</strong></span>
       </div>
     </div>`;
   }).join('');
