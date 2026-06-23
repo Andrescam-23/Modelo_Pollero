@@ -1,23 +1,23 @@
 {
   "picks": [
     {
-      "local": "England",
-      "visitante": "Ghana",
-      "we_elo": 0.946,
-      "we_market": 0.878,
+      "local": "Panama",
+      "visitante": "Croatia",
+      "we_elo": 0.242,
+      "we_market": 0.236,
       "we_xg": null,
-      "we_final": 0.895,
-      "p_local": 0.827,
-      "p_empate": 0.136,
-      "p_visit": 0.037,
-      "lambda_local": 2.29,
-      "lambda_visit": 0.31,
-      "pick_1": "2-0",
-      "pts_1": 6.38,
-      "pick_2": "1-0",
-      "pts_2": 6.31,
-      "pick_3": "3-0",
-      "pts_3": 6.19
+      "we_final": 0.237,
+      "p_local": 0.131,
+      "p_empate": 0.212,
+      "p_visit": 0.657,
+      "lambda_local": 0.7,
+      "lambda_visit": 1.9,
+      "pick_1": "0-1",
+      "pts_1": 5.1,
+      "pick_2": "0-2",
+      "pts_2": 5.01,
+      "pick_3": "1-2",
+      "pts_3": 4.78
     }
   ],
   "equipos": [
