@@ -277,7 +277,7 @@
             <th>Fecha</th>
             <th>ELO Local</th>
             <th>ELO Visitante</th>
-            <th>We ELO</th>
+            <th>Diferencia</th>
           </tr>
         </thead>
         <tbody id="elo-body"></tbody>
@@ -293,7 +293,6 @@
             <th>Fecha</th>
             <th>Local · Empate · Visitante</th>
             <th>Over / Under</th>
-            <th>We Mercado</th>
           </tr>
         </thead>
         <tbody id="odds-body"></tbody>
@@ -356,7 +355,7 @@ function renderElo(picks) {
         <div class="elo-val">${p.elo_visit ?? '—'}</div>
         <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barA}%;background:#e05c2a"></div></div>
       </td>
-      <td><strong>${p.we_elo ?? '—'}</strong></td>
+      <td>${p.elo_local != null && p.elo_visit != null ? `<strong style="color:${p.elo_local >= p.elo_visit ? '#4c8ef5' : '#e05c2a'}">${p.elo_local >= p.elo_visit ? '+' : ''}${p.elo_local - p.elo_visit}</strong>` : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -364,7 +363,7 @@ function renderElo(picks) {
 /* ---- ODDS TAB ---- */
 function renderOdds(picks) {
   const tbody = document.getElementById('odds-body');
-  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos.</td></tr>'; return; }
+  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Sin datos.</td></tr>'; return; }
 
   tbody.innerHTML = picks.map(p => {
     const hasH2h = p.market_p_local != null;
@@ -390,7 +389,6 @@ function renderOdds(picks) {
       <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
       <td>${probs}</td>
       <td>${ou}</td>
-      <td>${p.we_market != null ? `<strong>${(p.we_market * 100).toFixed(1)}%</strong>` : '—'}</td>
     </tr>`;
   }).join('');
 }
