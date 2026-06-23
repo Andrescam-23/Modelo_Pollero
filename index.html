@@ -784,13 +784,17 @@ function renderPartidos(partidos) {
 }
 
 (async () => {
-  const data = await loadData();
-  if (!data || (!data.picks?.length && !data.partidos_con_odds?.length && !data.partidos_jugados?.length)) return;
+  var data = await loadData();
+  var picks = (data && data.picks) ? data.picks : [];
+  var partidos = (data && data.partidos_jugados) ? data.partidos_jugados : [];
+  var oddsMatches = (data && data.partidos_con_odds) ? data.partidos_con_odds : [];
+
+  if (!picks.length && !partidos.length && !oddsMatches.length) return;
 
   document.getElementById('no-data').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
-  if (data.ultima_actualizacion) {
+  if (data && data.ultima_actualizacion) {
     var ts = data.ultima_actualizacion;
     var parts = ts.split(' ');
     var dateParts = parts[0].split('-');
@@ -800,10 +804,10 @@ function renderPartidos(partidos) {
     document.getElementById('last-update').style.display = 'block';
   }
 
-  renderElo(data.picks || []);
-  renderOdds(data.picks || []);
-  renderPicks(data.picks || []);
-  renderPartidos(data.partidos_jugados || []);
+  try { renderElo(picks); } catch(e) { console.error('renderElo:', e); }
+  try { renderOdds(picks); } catch(e) { console.error('renderOdds:', e); }
+  try { renderPicks(picks); } catch(e) { console.error('renderPicks:', e); }
+  try { renderPartidos(partidos); } catch(e) { console.error('renderPartidos:', e); }
 })();
 </script>
 </body>

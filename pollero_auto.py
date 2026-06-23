@@ -754,6 +754,9 @@ def _build_partidos_jugados() -> list[dict]:
             continue
         xg = m.get("stats", {}).get("xg", {})
         score = m.get("score", {})
+        # Filtrar partidos incompletos (sin ganador definido o marcador 0-0 con xG alto)
+        if not score.get("winner"):
+            continue
         partidos.append({
             "fecha":      m["match_date"][:10],
             "local":      m["home_team"]["team_name"],
