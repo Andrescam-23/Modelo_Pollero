@@ -350,6 +350,9 @@
       <button class="tab-btn" onclick="switchTab('odds', this)">
         <span class="tab-icon">💰</span>Odds
       </button>
+      <button class="tab-btn" onclick="switchTab('partidos', this)">
+        <span class="tab-icon">🏟️</span>Partidos
+      </button>
       <button class="tab-btn" onclick="switchTab('help', this)">
         <span class="tab-icon">❓</span>Ayuda
       </button>
@@ -365,6 +368,8 @@
             <th>ELO Local</th>
             <th>ELO Visitante</th>
             <th>Diferencia</th>
+            <th>xG Local</th>
+            <th>xG Visitante</th>
           </tr>
         </thead>
         <tbody id="elo-body"></tbody>
@@ -391,6 +396,22 @@
       <div class="picks-grid" id="picks-grid"></div>
     </div>
 
+    <!-- PESTAÑA PARTIDOS -->
+    <div id="tab-partidos" class="tab-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Partido</th>
+            <th>Resultado</th>
+            <th>xG Local</th>
+            <th>xG Visitante</th>
+          </tr>
+        </thead>
+        <tbody id="partidos-body"></tbody>
+      </table>
+    </div>
+
     <!-- PESTAÑA AYUDA -->
     <div id="tab-help" class="tab-panel">
       <div class="help-grid">
@@ -398,7 +419,7 @@
         <!-- Resumen general -->
         <div class="help-card full">
           <h3>¿Qué es esto?</h3>
-          <p>Esta página calcula automáticamente los picks recomendados para la polla del Mundial 2026. Combina tres fuentes de información: el <strong>ranking ELO</strong> de los equipos, las <strong>cuotas del mercado de apuestas</strong> y un <strong>modelo estadístico de Poisson</strong> para predecir marcadores. El resultado es el marcador que maximiza los puntos esperados en tu polla.</p>
+          <p>Esta página calcula automáticamente los picks recomendados para la polla del Mundial 2026. Combina tres fuentes de información: el <strong>ranking ELO</strong> de los equipos (historial acumulado), las <strong>cuotas del mercado de apuestas</strong> (consenso de casas europeas) y el <strong>xG reciente en el torneo</strong> (goles esperados reales de los partidos ya jugados). Con eso calibra un modelo de Poisson que predice el marcador más valioso para tu polla.</p>
         </div>
 
         <!-- Fuentes de datos -->
@@ -407,7 +428,8 @@
           <ul>
             <li><strong>ELO</strong> — eloratings.net, se actualiza diariamente. Mide la fuerza histórica acumulada de cada selección.</li>
             <li><strong>Cuotas</strong> — The Odds API, agrega cuotas de múltiples casas de apuestas europeas en tiempo real.</li>
-            <li><strong>Modelo</strong> — Distribución de Poisson calculada localmente con los datos anteriores.</li>
+            <li><strong>xG</strong> — footballdata.io, provee los goles esperados (xG) de cada partido ya jugado en el torneo.</li>
+            <li><strong>Modelo</strong> — Distribución de Poisson calibrada con las tres fuentes anteriores.</li>
           </ul>
         </div>
 
@@ -415,8 +437,8 @@
         <div class="help-card">
           <h3>🗂️ Pestañas</h3>
           <ul>
-            <li><strong>Consolidado</strong> — Pick recomendado por partido, con probabilidades del modelo y over/under.</li>
-            <li><strong>ELO</strong> — Rating ELO actual de cada equipo y diferencia entre ellos.</li>
+            <li><strong>Consolidado</strong> — Pick recomendado, probabilidades del modelo, ELO, xG reciente y over/under.</li>
+            <li><strong>ELO</strong> — Rating ELO actual, diferencia entre equipos, y xG anotado/concedido en el torneo.</li>
             <li><strong>Odds</strong> — Probabilidades reales del mercado (desviguadas) y over/under.</li>
           </ul>
         </div>
@@ -453,8 +475,8 @@
           <div class="help-step">
             <div class="step-num">5</div>
             <div class="step-text"><strong>We Final (mezcla ponderada).</strong> Se combinan las dos fuentes con pesos fijos:
-              <div class="formula">We_final = 20% × We_ELO + 80% × We_mercado</div>
-              Si no hay cuotas disponibles, el peso del ELO sube al 100%.
+              <div class="formula">We_final = 15% × We_ELO + 55% × We_mercado + 30% × We_xG</div>
+              Si falta alguna fuente, los pesos se redistribuyen automáticamente entre las disponibles.
             </div>
           </div>
 
@@ -538,13 +560,24 @@ function fmtDate(d) {
 /* ---- ELO TAB ---- */
 function renderElo(picks) {
   const tbody = document.getElementById('elo-body');
-  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos.</td></tr>'; return; }
+  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos.</td></tr>'; return; }
 
   const maxElo = Math.max(...picks.flatMap(p => [p.elo_local, p.elo_visit].filter(Boolean)));
 
   tbody.innerHTML = picks.map(p => {
     const barH = p.elo_local  ? Math.round((p.elo_local  / maxElo) * 100) : 0;
     const barA = p.elo_visit ? Math.round((p.elo_visit / maxElo) * 100) : 0;
+
+    const xgLocalCell = p.xg_local_scored != null
+      ? `<div style="font-weight:700;color:#4c8ef5">${p.xg_local_scored.toFixed(2)}</div>
+         <div style="font-size:0.68rem;color:#4a5068">conc. ${p.xg_local_conceded.toFixed(2)} · ${p.xg_partidos_local}P</div>`
+      : '<span style="color:#4a5068">—</span>';
+
+    const xgVisitCell = p.xg_visit_scored != null
+      ? `<div style="font-weight:700;color:#e05c2a">${p.xg_visit_scored.toFixed(2)}</div>
+         <div style="font-size:0.68rem;color:#4a5068">conc. ${p.xg_visit_conceded.toFixed(2)} · ${p.xg_partidos_visit}P</div>`
+      : '<span style="color:#4a5068">—</span>';
+
     return `<tr>
       <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
       <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
@@ -557,6 +590,8 @@ function renderElo(picks) {
         <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barA}%;background:#e05c2a"></div></div>
       </td>
       <td>${p.elo_local != null && p.elo_visit != null ? `<strong style="color:${p.elo_local >= p.elo_visit ? '#4c8ef5' : '#e05c2a'}">${p.elo_local >= p.elo_visit ? '+' : ''}${p.elo_local - p.elo_visit}</strong>` : '—'}</td>
+      <td>${xgLocalCell}</td>
+      <td>${xgVisitCell}</td>
     </tr>`;
   }).join('');
 }
@@ -647,7 +682,7 @@ function renderPicks(picks) {
           </div>
         </div>
         <div>
-          <div class="card-section-title">ELO</div>
+          <div class="card-section-title">ELO · xG reciente</div>
           <div class="card-elo">
             <div class="card-elo-row">
               <span class="card-elo-team">${p.local}</span>
@@ -657,6 +692,17 @@ function renderPicks(picks) {
               <span class="card-elo-team">${p.visitante}</span>
               <span class="card-elo-val">${p.elo_visit ?? '—'}</span>
             </div>
+            ${p.xg_local_scored != null ? `
+            <div style="margin-top:8px;padding-top:6px;border-top:1px solid #0f1525">
+              <div class="card-elo-row">
+                <span class="card-elo-team" style="font-size:0.7rem">xG ${p.local}</span>
+                <span style="font-size:0.75rem;color:#4c8ef5;font-weight:700">${p.xg_local_scored.toFixed(2)} <span style="color:#4a5068;font-weight:400">/ conc. ${p.xg_local_conceded.toFixed(2)}</span></span>
+              </div>
+              <div class="card-elo-row">
+                <span class="card-elo-team" style="font-size:0.7rem">xG ${p.visitante}</span>
+                <span style="font-size:0.75rem;color:#e05c2a;font-weight:700">${p.xg_visit_scored.toFixed(2)} <span style="color:#4a5068;font-weight:400">/ conc. ${p.xg_visit_conceded.toFixed(2)}</span></span>
+              </div>
+            </div>` : ''}
           </div>
         </div>
       </div>
@@ -672,6 +718,52 @@ function renderPicks(picks) {
   }).join('');
 }
 
+/* ---- PARTIDOS TAB ---- */
+function renderPartidos(partidos) {
+  const tbody = document.getElementById('partidos-body');
+  if (!partidos || !partidos.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin partidos jugados.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = partidos.map(p => {
+    const winHome = p.ganador === 'home';
+    const winAway = p.ganador === 'away';
+    const draw    = p.ganador === 'draw';
+
+    const localStyle  = winHome ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
+    const visitStyle  = winAway ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
+    const scoreStyle  = draw    ? 'color:#f5a623' : 'color:#e8eaf0';
+
+    // Barra xG — max visual 4 goles
+    const maxXg = 4;
+    const barLocal = Math.min(100, Math.round((p.xg_local / maxXg) * 100));
+    const barVisit = Math.min(100, Math.round((p.xg_visit / maxXg) * 100));
+
+    // Color xG: verde si superó el xG, rojo si no llegó
+    const xgLocalColor  = p.goles_local  >= p.xg_local  ? '#4c8ef5' : '#e05c2a';
+    const xgVisitColor  = p.goles_visit  >= p.xg_visit  ? '#4c8ef5' : '#e05c2a';
+
+    return `<tr>
+      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
+      <td>
+        <span class="team-name" style="${localStyle}">${p.local}</span>
+        <span class="vs-sep">vs</span>
+        <span class="team-name" style="${visitStyle}">${p.visitante}</span>
+      </td>
+      <td style="text-align:center;font-size:1.1rem;font-weight:800;letter-spacing:2px;${scoreStyle}">${p.goles_local} – ${p.goles_visit}</td>
+      <td>
+        <div style="font-weight:700;color:${xgLocalColor}">${p.xg_local.toFixed(2)}</div>
+        <div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:${barLocal}%;background:${xgLocalColor}"></div></div>
+      </td>
+      <td>
+        <div style="font-weight:700;color:${xgVisitColor}">${p.xg_visit.toFixed(2)}</div>
+        <div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:${barVisit}%;background:${xgVisitColor}"></div></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
 (async () => {
   const data = await loadData();
   if (!data || (!data.picks?.length && !data.partidos_con_odds?.length)) return;
@@ -682,6 +774,7 @@ function renderPicks(picks) {
   renderElo(data.picks || []);
   renderOdds(data.picks || []);
   renderPicks(data.picks || []);
+  renderPartidos(data.partidos_jugados || []);
 })();
 </script>
 </body>
