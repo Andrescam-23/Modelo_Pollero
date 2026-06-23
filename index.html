@@ -597,8 +597,7 @@ function fmtDate(d) {
 
 /* ---- ELO TAB ---- */
 function eloVerdict(diff) {
-  const abs = Math.abs(diff);
-  // Umbrales basados en la escala ELO: cada 400 pts = 10x más probable de ganar
+  var abs = Math.abs(diff);
   if (abs >= 300) return { label: diff > 0 ? 'Dominio local' : 'Dominio visitante', color: diff > 0 ? '#4c8ef5' : '#e05c2a', bg: diff > 0 ? '#0d1e3a' : '#2a0f08', bar: 100 };
   if (abs >= 175) return { label: diff > 0 ? 'Local favorito' : 'Visitante favorito', color: diff > 0 ? '#4c8ef5' : '#e05c2a', bg: diff > 0 ? '#0d1e3a' : '#2a0f08', bar: Math.round(60 + (abs - 175) / 125 * 40) };
   if (abs >= 75)  return { label: diff > 0 ? 'Local leve fav.' : 'Visit. leve fav.', color: diff > 0 ? '#7eb3ff' : '#ff8a65', bg: diff > 0 ? '#0a1828' : '#1e1008', bar: Math.round(30 + (abs - 75) / 100 * 30) };
@@ -606,219 +605,162 @@ function eloVerdict(diff) {
 }
 
 function renderElo(picks) {
-  const tbody = document.getElementById('elo-body');
+  var tbody = document.getElementById('elo-body');
   if (!picks.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin datos.</td></tr>'; return; }
 
-  const maxElo = Math.max(...picks.flatMap(p => [p.elo_local, p.elo_visit].filter(Boolean)));
+  var maxElo = Math.max.apply(null, picks.reduce(function(a,p){ if(p.elo_local) a.push(p.elo_local); if(p.elo_visit) a.push(p.elo_visit); return a; }, []));
 
-  tbody.innerHTML = picks.map(p => {
-    const barH = p.elo_local  ? Math.round((p.elo_local  / maxElo) * 100) : 0;
-    const barA = p.elo_visit  ? Math.round((p.elo_visit  / maxElo) * 100) : 0;
-    const diff = (p.elo_local ?? 0) - (p.elo_visit ?? 0);
-    const v = p.elo_local != null && p.elo_visit != null ? eloVerdict(diff) : null;
+  tbody.innerHTML = picks.map(function(p) {
+    var barH = p.elo_local ? Math.round(p.elo_local / maxElo * 100) : 0;
+    var barA = p.elo_visit ? Math.round(p.elo_visit / maxElo * 100) : 0;
+    var diff = (p.elo_local || 0) - (p.elo_visit || 0);
+    var v = (p.elo_local != null && p.elo_visit != null) ? eloVerdict(diff) : null;
+    var diffStr = v ? (diff > 0 ? '+' : '') + diff : '—';
+    var diffCell = v ? '<strong style="color:' + v.color + '">' + diffStr + '</strong>' : '—';
+    var verdictCell = v
+      ? '<div style="display:inline-flex;align-items:center;gap:8px;background:' + v.bg + ';border:1px solid ' + v.color + '33;border-radius:6px;padding:5px 10px">'
+        + '<div style="width:48px;height:4px;background:#0d1220;border-radius:2px;overflow:hidden">'
+        + '<div style="height:4px;width:' + v.bar + '%;background:' + v.color + ';border-radius:2px"></div></div>'
+        + '<span style="font-size:0.75rem;font-weight:700;color:' + v.color + '">' + v.label + '</span></div>'
+      : '—';
 
-    const verdictCell = v ? `
-      <div style="display:inline-flex;align-items:center;gap:8px;background:${v.bg};border:1px solid ${v.color}33;border-radius:6px;padding:5px 10px">
-        <div style="width:48px;height:4px;background:#0d1220;border-radius:2px;overflow:hidden">
-          <div style="height:4px;width:${v.bar}%;background:${v.color};border-radius:2px"></div>
-        </div>
-        <span style="font-size:0.75rem;font-weight:700;color:${v.color}">${v.label}</span>
-      </div>` : '—';
-
-    return `<tr>
-      <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
-      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
-      <td>
-        <div class="elo-val">${p.elo_local ?? '—'}</div>
-        <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barH}%"></div></div>
-      </td>
-      <td>
-        <div class="elo-val">${p.elo_visit ?? '—'}</div>
-        <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barA}%;background:#e05c2a"></div></div>
-      </td>
-      <td>${v ? `<strong style="color:${v.color}">${diff > 0 ? '+' : ''}${diff}</strong>` : '—'}</td>
-      <td>${verdictCell}</td>
-    </tr>`;
+    return '<tr>'
+      + '<td><span class="team-name">' + p.local + '</span><span class="vs-sep">vs</span><span class="team-name">' + p.visitante + '</span></td>'
+      + '<td><span class="date-chip">' + fmtDate(p.fecha) + '</span></td>'
+      + '<td><div class="elo-val">' + (p.elo_local || '—') + '</div><div class="elo-bar-wrap"><div class="elo-bar" style="width:' + barH + '%"></div></div></td>'
+      + '<td><div class="elo-val">' + (p.elo_visit || '—') + '</div><div class="elo-bar-wrap"><div class="elo-bar" style="width:' + barA + '%;background:#e05c2a"></div></div></td>'
+      + '<td>' + diffCell + '</td>'
+      + '<td>' + verdictCell + '</td>'
+      + '</tr>';
   }).join('');
 }
 
 /* ---- ODDS TAB ---- */
 function renderOdds(picks) {
-  const tbody = document.getElementById('odds-body');
+  var tbody = document.getElementById('odds-body');
   if (!picks.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Sin datos.</td></tr>'; return; }
-
-  tbody.innerHTML = picks.map(p => {
-    const hasH2h = p.market_p_local != null;
-    const hasOU  = p.ou_linea != null;
-
-    const probs = hasH2h ? `
-      <div class="prob-group">
-        <div class="prob-pill pp-home">${pct(p.market_p_local)}</div>
-        <div class="prob-pill pp-draw">${pct(p.market_p_empate)}</div>
-        <div class="prob-pill pp-away">${pct(p.market_p_visit)}</div>
-      </div>` : '<span style="color:#4a5068">Sin cuotas</span>';
-
-    const ou = hasOU ? `
-      <div class="ou-group">
-        <span class="ou-line">${p.ou_linea}</span>
-        <span class="ou-over">Over ${pct(p.ou_over)}</span>
-        <span style="color:#1e2840">·</span>
-        <span class="ou-under">Under ${pct(p.ou_under)}</span>
-      </div>` : '—';
-
-    return `<tr>
-      <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
-      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
-      <td>${probs}</td>
-      <td>${ou}</td>
-    </tr>`;
+  tbody.innerHTML = picks.map(function(p) {
+    var probs = p.market_p_local != null
+      ? '<div class="prob-group">'
+        + '<div class="prob-pill pp-home">' + pct(p.market_p_local) + '</div>'
+        + '<div class="prob-pill pp-draw">' + pct(p.market_p_empate) + '</div>'
+        + '<div class="prob-pill pp-away">' + pct(p.market_p_visit) + '</div>'
+        + '</div>'
+      : '<span style="color:#4a5068">Sin cuotas</span>';
+    var ou = p.ou_linea != null
+      ? '<div class="ou-group">'
+        + '<span class="ou-line">' + p.ou_linea + '</span>'
+        + '<span class="ou-over">Over ' + pct(p.ou_over) + '</span>'
+        + '<span style="color:#1e2840">·</span>'
+        + '<span class="ou-under">Under ' + pct(p.ou_under) + '</span>'
+        + '</div>'
+      : '—';
+    return '<tr>'
+      + '<td><span class="team-name">' + p.local + '</span><span class="vs-sep">vs</span><span class="team-name">' + p.visitante + '</span></td>'
+      + '<td><span class="date-chip">' + fmtDate(p.fecha) + '</span></td>'
+      + '<td>' + probs + '</td>'
+      + '<td>' + ou + '</td>'
+      + '</tr>';
   }).join('');
 }
 
 function xgBlock(p) {
-  if (p.xg_local_scored == null) {
-    return '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>';
-  }
-  const barL = Math.min(100, Math.round(p.xg_local_scored / 4 * 100));
-  const barV = Math.min(100, Math.round(p.xg_visit_scored / 4 * 100));
+  if (p.xg_local_scored == null) return '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>';
+  var barL = Math.min(100, Math.round(p.xg_local_scored / 4 * 100));
+  var barV = Math.min(100, Math.round(p.xg_visit_scored / 4 * 100));
   return '<div class="card-elo-row" style="margin-bottom:4px">'
     + '<span class="card-elo-team">' + p.local + '</span>'
-    + '<span style="font-size:0.8rem">'
-    + '<span style="color:#4c8ef5;font-weight:700">' + p.xg_local_scored.toFixed(2) + '</span>'
+    + '<span style="font-size:0.8rem"><span style="color:#4c8ef5;font-weight:700">' + p.xg_local_scored.toFixed(2) + '</span>'
     + '<span style="color:#4a5068;font-size:0.7rem"> gen · </span>'
     + '<span style="color:#e05c2a;font-weight:700">' + p.xg_local_conceded.toFixed(2) + '</span>'
-    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span>'
-    + '</span></div>'
-    + '<div class="card-prob-bar-wrap" style="margin-bottom:8px">'
-    + '<div class="card-prob-bar cpb-home" style="width:' + barL + '%"></div></div>'
+    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span></span></div>'
+    + '<div class="card-prob-bar-wrap" style="margin-bottom:8px"><div class="card-prob-bar cpb-home" style="width:' + barL + '%"></div></div>'
     + '<div class="card-elo-row" style="margin-bottom:4px">'
     + '<span class="card-elo-team">' + p.visitante + '</span>'
-    + '<span style="font-size:0.8rem">'
-    + '<span style="color:#4c8ef5;font-weight:700">' + p.xg_visit_scored.toFixed(2) + '</span>'
+    + '<span style="font-size:0.8rem"><span style="color:#4c8ef5;font-weight:700">' + p.xg_visit_scored.toFixed(2) + '</span>'
     + '<span style="color:#4a5068;font-size:0.7rem"> gen · </span>'
     + '<span style="color:#e05c2a;font-weight:700">' + p.xg_visit_conceded.toFixed(2) + '</span>'
-    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span>'
-    + '</span></div>'
-    + '<div class="card-prob-bar-wrap">'
-    + '<div class="card-prob-bar cpb-away" style="width:' + barV + '%"></div></div>'
-    + '<div style="font-size:0.62rem;color:#4a5068;margin-top:6px">'
-    + (p.xg_partidos_local || 0) + 'P local · ' + (p.xg_partidos_visit || 0) + 'P visit</div>';
+    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span></span></div>'
+    + '<div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-away" style="width:' + barV + '%"></div></div>'
+    + '<div style="font-size:0.62rem;color:#4a5068;margin-top:6px">' + (p.xg_partidos_local || 0) + 'P local · ' + (p.xg_partidos_visit || 0) + 'P visit</div>';
 }
 
 /* ---- PICKS TAB ---- */
 function renderPicks(picks) {
-  const grid = document.getElementById('picks-grid');
+  var grid = document.getElementById('picks-grid');
   if (!picks.length) { grid.innerHTML = '<p class="empty">Sin picks generados.</p>'; return; }
-
-  grid.innerHTML = picks.map(p => {
-    const hasOU = p.ou_linea != null;
-
-    const ouBlock = hasOU ? `
-      <div class="card-ou">
-        <span class="label">Over/Under</span>
-        <span class="linea">${p.ou_linea} goles</span>
-        <span style="color:#2a3050">|</span>
-        <span class="over">Over ${pct(p.ou_over)}</span>
-        <span style="color:#2a3050">·</span>
-        <span class="under">Under ${pct(p.ou_under)}</span>
-      </div>` : '';
-
-    return `
-    <div class="pick-card">
-      <div class="card-header">
-        <div>
-          <div class="card-match">${p.local}<span class="vs-sep">vs</span>${p.visitante}</div>
-          <div class="card-date">${fmtDate(p.fecha)}</div>
-        </div>
-        <div>
-          <div class="pick-badge">${p.pick_1}</div>
-          <div class="pick-pts">${p.pts_1} pts esp.</div>
-        </div>
-      </div>
-
-      <div class="card-body">
-        <div>
-          <div class="card-section-title">Probabilidades Modelo</div>
-          <div class="card-probs">
-            <div class="card-prob-row">
-              <span class="card-prob-label">Local</span>
-              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-home" style="width:${pctN(p.p_local)}%"></div></div>
-              <span class="card-prob-val">${pct(p.p_local)}</span>
-            </div>
-            <div class="card-prob-row">
-              <span class="card-prob-label">Empate</span>
-              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-draw" style="width:${pctN(p.p_empate)}%"></div></div>
-              <span class="card-prob-val">${pct(p.p_empate)}</span>
-            </div>
-            <div class="card-prob-row">
-              <span class="card-prob-label">Visitante</span>
-              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-away" style="width:${pctN(p.p_visit)}%"></div></div>
-              <span class="card-prob-val">${pct(p.p_visit)}</span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card-section-title">xG ajustado por rival</div>
-          <div class="card-elo">
-            ${xgBlock(p)}
-          </div>
-        </div>
-      </div>
-
-      ${ouBlock}
-
-      <div class="card-alts">
-        <span style="font-size:0.68rem;color:#4a5068;align-self:center">Alt:</span>
-        <div class="alt-chip"><b>${p.pick_2}</b>${p.pts_2} pts</div>
-        <div class="alt-chip"><b>${p.pick_3}</b>${p.pts_3} pts</div>
-      </div>
-    </div>`;
+  grid.innerHTML = picks.map(function(p) {
+    var ouBlock = p.ou_linea != null
+      ? '<div class="card-ou">'
+        + '<span class="label">Over/Under</span>'
+        + '<span class="linea">' + p.ou_linea + ' goles</span>'
+        + '<span style="color:#2a3050">|</span>'
+        + '<span class="over">Over ' + pct(p.ou_over) + '</span>'
+        + '<span style="color:#2a3050">·</span>'
+        + '<span class="under">Under ' + pct(p.ou_under) + '</span>'
+        + '</div>'
+      : '';
+    return '<div class="pick-card">'
+      + '<div class="card-header">'
+      + '<div><div class="card-match">' + p.local + '<span class="vs-sep">vs</span>' + p.visitante + '</div>'
+      + '<div class="card-date">' + fmtDate(p.fecha) + '</div></div>'
+      + '<div><div class="pick-badge">' + p.pick_1 + '</div>'
+      + '<div class="pick-pts">' + p.pts_1 + ' pts esp.</div></div>'
+      + '</div>'
+      + '<div class="card-body">'
+      + '<div><div class="card-section-title">Probabilidades Modelo</div>'
+      + '<div class="card-probs">'
+      + '<div class="card-prob-row"><span class="card-prob-label">Local</span>'
+      + '<div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-home" style="width:' + pctN(p.p_local) + '%"></div></div>'
+      + '<span class="card-prob-val">' + pct(p.p_local) + '</span></div>'
+      + '<div class="card-prob-row"><span class="card-prob-label">Empate</span>'
+      + '<div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-draw" style="width:' + pctN(p.p_empate) + '%"></div></div>'
+      + '<span class="card-prob-val">' + pct(p.p_empate) + '</span></div>'
+      + '<div class="card-prob-row"><span class="card-prob-label">Visitante</span>'
+      + '<div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-away" style="width:' + pctN(p.p_visit) + '%"></div></div>'
+      + '<span class="card-prob-val">' + pct(p.p_visit) + '</span></div>'
+      + '</div></div>'
+      + '<div><div class="card-section-title">xG ajustado por rival</div>'
+      + '<div class="card-elo">' + xgBlock(p) + '</div></div>'
+      + '</div>'
+      + ouBlock
+      + '<div class="card-alts">'
+      + '<span style="font-size:0.68rem;color:#4a5068;align-self:center">Alt:</span>'
+      + '<div class="alt-chip"><b>' + p.pick_2 + '</b>' + p.pts_2 + ' pts</div>'
+      + '<div class="alt-chip"><b>' + p.pick_3 + '</b>' + p.pts_3 + ' pts</div>'
+      + '</div></div>';
   }).join('');
 }
 
 /* ---- PARTIDOS TAB ---- */
 function renderPartidos(partidos) {
-  const tbody = document.getElementById('partidos-body');
+  var tbody = document.getElementById('partidos-body');
   if (!partidos || !partidos.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin partidos jugados.</td></tr>';
     return;
   }
-
-  tbody.innerHTML = partidos.map(p => {
-    const winHome = p.ganador === 'home';
-    const winAway = p.ganador === 'away';
-    const draw    = p.ganador === 'draw';
-
-    const localStyle  = winHome ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
-    const visitStyle  = winAway ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
-    const scoreStyle  = draw    ? 'color:#f5a623' : 'color:#e8eaf0';
-
-    // Barra xG — max visual 4 goles
-    const maxXg = 4;
-    const barLocal = Math.min(100, Math.round((p.xg_local / maxXg) * 100));
-    const barVisit = Math.min(100, Math.round((p.xg_visit / maxXg) * 100));
-
-    // Color xG: verde si superó el xG, rojo si no llegó
-    const xgLocalColor  = p.goles_local  >= p.xg_local  ? '#4c8ef5' : '#e05c2a';
-    const xgVisitColor  = p.goles_visit  >= p.xg_visit  ? '#4c8ef5' : '#e05c2a';
-
-    return `<tr>
-      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
-      <td>
-        <span class="team-name" style="${localStyle}">${p.local}</span>
-        <span class="vs-sep">vs</span>
-        <span class="team-name" style="${visitStyle}">${p.visitante}</span>
-      </td>
-      <td style="text-align:center;font-size:1.1rem;font-weight:800;letter-spacing:2px;${scoreStyle}">${p.goles_local} – ${p.goles_visit}</td>
-      <td>
-        <div style="font-weight:700;color:${xgLocalColor}">${p.xg_local.toFixed(2)}</div>
-        <div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:${barLocal}%;background:${xgLocalColor}"></div></div>
-      </td>
-      <td>
-        <div style="font-weight:700;color:${xgVisitColor}">${p.xg_visit.toFixed(2)}</div>
-        <div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:${barVisit}%;background:${xgVisitColor}"></div></div>
-      </td>
-    </tr>`;
+  tbody.innerHTML = partidos.map(function(p) {
+    var winHome = p.ganador === 'home';
+    var winAway = p.ganador === 'away';
+    var draw    = p.ganador === 'draw';
+    var localStyle = winHome ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
+    var visitStyle = winAway ? 'font-weight:800;color:#e8eaf0' : 'color:#7b8299';
+    var scoreColor = draw ? '#f5a623' : '#e8eaf0';
+    var barLocal = Math.min(100, Math.round(p.xg_local / 4 * 100));
+    var barVisit = Math.min(100, Math.round(p.xg_visit / 4 * 100));
+    var xgLC = p.goles_local >= p.xg_local ? '#4c8ef5' : '#e05c2a';
+    var xgVC = p.goles_visit >= p.xg_visit ? '#4c8ef5' : '#e05c2a';
+    return '<tr>'
+      + '<td><span class="date-chip">' + fmtDate(p.fecha) + '</span></td>'
+      + '<td><span class="team-name" style="' + localStyle + '">' + p.local + '</span>'
+      + '<span class="vs-sep">vs</span>'
+      + '<span class="team-name" style="' + visitStyle + '">' + p.visitante + '</span></td>'
+      + '<td style="text-align:center;font-size:1.1rem;font-weight:800;letter-spacing:2px;color:' + scoreColor + '">' + p.goles_local + ' – ' + p.goles_visit + '</td>'
+      + '<td><div style="font-weight:700;color:' + xgLC + '">' + p.xg_local.toFixed(2) + '</div>'
+      + '<div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:' + barLocal + '%;background:' + xgLC + '"></div></div></td>'
+      + '<td><div style="font-weight:700;color:' + xgVC + '">' + p.xg_visit.toFixed(2) + '</div>'
+      + '<div class="elo-bar-wrap" style="width:80px"><div class="elo-bar" style="width:' + barVisit + '%;background:' + xgVC + '"></div></div></td>'
+      + '</tr>';
   }).join('');
 }
 
