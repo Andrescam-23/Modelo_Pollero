@@ -15,89 +15,113 @@
     padding: 24px 16px 48px;
   }
 
+  .container { max-width: 980px; margin: 0 auto; }
+
   header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
-  header h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
+  header h1 { font-size: 1.9rem; font-weight: 700; }
   header h1 span { color: #f5a623; }
-  header p { color: #7b8299; font-size: 0.85rem; margin-top: 4px; }
+  header p { color: #7b8299; font-size: 0.83rem; margin-top: 5px; }
 
-  /* ---- layout ---- */
-  .container { max-width: 860px; margin: 0 auto; }
+  /* ---- TABS ---- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #1e2840;
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5068;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .tab-btn:hover { color: #c0c6d8; }
+  .tab-btn.active {
+    color: #f5a623;
+    border-bottom-color: #f5a623;
+  }
+  .tab-btn .tab-icon { margin-right: 6px; }
 
-  /* ---- seccion instrucciones ---- */
-  .how-to {
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---- TABLA GENERICA ---- */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .data-table thead th {
+    text-align: left;
+    padding: 7px 12px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: #4a5068;
+    border-bottom: 1px solid #1e2840;
+    white-space: nowrap;
+  }
+  .data-table tbody tr { border-bottom: 1px solid #0f1525; transition: background 0.12s; }
+  .data-table tbody tr:hover { background: #111827; }
+  .data-table td { padding: 11px 12px; vertical-align: middle; }
+
+  .team-name { font-weight: 600; color: #e8eaf0; }
+  .vs-sep { color: #4a5068; margin: 0 6px; font-size: 0.75rem; font-weight: 400; }
+  .date-chip {
+    display: inline-block;
     background: #131929;
+    border: 1px solid #1e2840;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    color: #7b8299;
+  }
+
+  /* elo bars */
+  .elo-val { font-weight: 700; font-size: 0.9rem; }
+  .elo-bar-wrap { background: #0d1220; border-radius: 3px; height: 4px; width: 100px; margin-top: 4px; }
+  .elo-bar { height: 4px; border-radius: 3px; background: #4c8ef5; }
+
+  /* prob mini bars */
+  .prob-group { display: flex; gap: 4px; align-items: stretch; }
+  .prob-pill {
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    min-width: 46px;
+  }
+  .pp-home  { background: #1e3a6e; color: #7eb3ff; }
+  .pp-draw  { background: #1e2535; color: #7b8299; }
+  .pp-away  { background: #4a1a0e; color: #ff8a65; }
+
+  /* ou */
+  .ou-group { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+  .ou-line  { font-weight: 700; color: #f5a623; }
+  .ou-over  { color: #4c8ef5; }
+  .ou-under { color: #e05c2a; }
+
+  /* ---- CARDS CONSOLIDADO ---- */
+  .picks-grid { display: grid; gap: 14px; }
+
+  .pick-card {
+    background: #111827;
     border: 1px solid #1e2840;
     border-radius: 12px;
     padding: 18px 20px;
-    margin-bottom: 28px;
-    font-size: 0.83rem;
-    color: #7b8299;
-    line-height: 1.7;
-  }
-  .how-to strong { color: #c0c6d8; }
-  .how-to code {
-    background: #0d1220;
-    border-radius: 4px;
-    padding: 1px 6px;
-    font-family: 'Consolas', monospace;
-    color: #f5a623;
-    font-size: 0.82rem;
-  }
-
-  /* ---- estado sin datos ---- */
-  #no-data {
-    text-align: center;
-    padding: 60px 20px;
-    color: #4a5068;
-  }
-  #no-data .icon { font-size: 3rem; margin-bottom: 12px; }
-  #no-data p { font-size: 0.9rem; line-height: 1.6; }
-
-  /* ---- partidos con odds ---- */
-  .section-title {
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: #4a5068;
-    margin-bottom: 10px;
-  }
-
-  .odds-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 28px;
-  }
-  .odds-chip {
-    background: #131929;
-    border: 1px solid #1e2840;
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-size: 0.78rem;
-    color: #c0c6d8;
-    cursor: default;
-  }
-  .odds-chip .dot { color: #f5a623; margin: 0 5px; }
-
-  /* ---- cards de picks ---- */
-  .picks-grid {
-    display: grid;
-    gap: 18px;
-  }
-
-  .pick-card {
-    background: #131929;
-    border: 1px solid #1e2840;
-    border-radius: 14px;
-    padding: 22px 24px;
     position: relative;
     overflow: hidden;
   }
@@ -109,19 +133,16 @@
     background: linear-gradient(90deg, #f5a623, #e05c2a);
   }
 
-  .match-header {
+  .card-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
     flex-wrap: wrap;
-    gap: 8px;
   }
-  .match-name {
-    font-size: 1.05rem;
-    font-weight: 600;
-  }
-  .match-name .vs { color: #4a5068; font-weight: 400; font-size: 0.85rem; margin: 0 8px; }
+  .card-match { font-size: 1rem; font-weight: 700; }
+  .card-date  { font-size: 0.72rem; color: #4a5068; margin-top: 3px; }
 
   .pick-badge {
     background: linear-gradient(135deg, #f5a623, #e05c2a);
@@ -129,94 +150,93 @@
     font-size: 1.4rem;
     font-weight: 800;
     padding: 6px 18px;
-    border-radius: 8px;
+    border-radius: 7px;
     letter-spacing: 1px;
+    flex-shrink: 0;
   }
-  .pick-pts {
-    font-size: 0.72rem;
-    color: #7b8299;
-    text-align: center;
-    margin-top: 3px;
-  }
+  .pick-pts { font-size: 0.68rem; color: #7b8299; text-align: center; margin-top: 3px; }
 
-  /* barras de probabilidad */
-  .probs {
+  .card-body {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 18px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
   }
-  .prob-item { text-align: center; }
-  .prob-label { font-size: 0.68rem; color: #4a5068; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.8px; }
-  .prob-bar-wrap {
-    background: #0d1220;
-    border-radius: 4px;
-    height: 6px;
-    overflow: hidden;
-    margin-bottom: 5px;
-  }
-  .prob-bar {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.6s ease;
-  }
-  .prob-bar.home  { background: #4c8ef5; }
-  .prob-bar.draw  { background: #7b8299; }
-  .prob-bar.away  { background: #e05c2a; }
-  .prob-value { font-size: 0.9rem; font-weight: 600; }
 
-  /* lambdas y we */
-  .meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding-top: 14px;
-    border-top: 1px solid #1e2840;
-    font-size: 0.78rem;
+  .card-section-title {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
     color: #4a5068;
+    margin-bottom: 8px;
   }
-  .meta-item strong { color: #c0c6d8; }
+
+  /* probs en card */
+  .card-probs { display: flex; flex-direction: column; gap: 5px; }
+  .card-prob-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
+  .card-prob-label { color: #4a5068; width: 56px; font-size: 0.72rem; }
+  .card-prob-bar-wrap { flex: 1; background: #0d1220; border-radius: 3px; height: 5px; overflow: hidden; }
+  .card-prob-bar { height: 5px; border-radius: 3px; }
+  .cpb-home { background: #4c8ef5; }
+  .cpb-draw { background: #7b8299; }
+  .cpb-away { background: #e05c2a; }
+  .card-prob-val { font-weight: 600; font-size: 0.78rem; width: 38px; text-align: right; }
+
+  /* elo en card */
+  .card-elo { display: flex; flex-direction: column; gap: 6px; }
+  .card-elo-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; }
+  .card-elo-team { color: #7b8299; }
+  .card-elo-val  { font-weight: 700; color: #c0c6d8; }
+
+  /* ou en card */
+  .card-ou {
+    background: #0d1220;
+    border-radius: 7px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+  .card-ou .label { font-size: 0.62rem; color: #4a5068; text-transform: uppercase; letter-spacing: 0.8px; }
+  .card-ou .linea { color: #f5a623; font-weight: 700; font-size: 1rem; }
+  .card-ou .over  { color: #4c8ef5; font-weight: 600; }
+  .card-ou .under { color: #e05c2a; font-weight: 600; }
 
   /* alternativas */
-  .alts {
-    margin-top: 14px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
+  .card-alts { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
   .alt-chip {
     background: #0d1220;
     border: 1px solid #1e2840;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 0.78rem;
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 0.75rem;
     color: #7b8299;
   }
-  .alt-chip span { color: #c0c6d8; font-weight: 600; margin-right: 5px; }
+  .alt-chip b { color: #c0c6d8; margin-right: 4px; }
 
-  /* odds display */
-  .odds-row {
+  /* we row */
+  .card-we {
     display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 12px;
     flex-wrap: wrap;
+    padding-top: 10px;
+    border-top: 1px solid #1e2840;
+    font-size: 0.72rem;
+    color: #4a5068;
   }
-  .odd-box {
-    flex: 1;
-    min-width: 70px;
-    background: #0d1220;
-    border: 1px solid #1e2840;
-    border-radius: 8px;
-    padding: 7px 10px;
-    text-align: center;
-  }
-  .odd-box .odd-label { font-size: 0.65rem; color: #4a5068; text-transform: uppercase; letter-spacing: 0.8px; }
-  .odd-box .odd-val { font-size: 1rem; font-weight: 600; color: #c0c6d8; margin-top: 2px; }
+  .card-we strong { color: #c0c6d8; }
+
+  /* sin datos */
+  .empty { color: #4a5068; font-size: 0.85rem; padding: 20px 0; }
 
   footer {
     text-align: center;
-    margin-top: 40px;
-    font-size: 0.75rem;
+    margin-top: 48px;
+    font-size: 0.7rem;
     color: #2a3050;
   }
 </style>
@@ -226,84 +246,179 @@
 
   <header>
     <h1>⚽ Pollero <span>Mundial 2026</span></h1>
-    <p>Picks recomendados por el modelo Poisson + ELO + Mercado</p>
+    <p>Picks recomendados · ELO + Mercado + Poisson</p>
   </header>
 
-  <div id="no-data">
-    <div class="icon">⏳</div>
-    <p>Aún no hay picks generados.<br>
-    Vuelve más tarde cuando se actualicen los resultados.</p>
+  <div id="no-data" style="text-align:center;padding:60px 20px;color:#4a5068">
+    <div style="font-size:3rem;margin-bottom:12px">⏳</div>
+    <p style="font-size:0.9rem;line-height:1.7">Aún no hay datos.<br>Corre el modelo y sube los picks.</p>
   </div>
 
   <div id="app" style="display:none">
-    <div class="section-title">Partidos con cuotas disponibles</div>
-    <div class="odds-chips" id="odds-chips"></div>
 
-    <div class="section-title">Picks recomendados</div>
-    <div class="picks-grid" id="picks-grid"></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('elo', this)">
+        <span class="tab-icon">📊</span>ELO
+      </button>
+      <button class="tab-btn" onclick="switchTab('odds', this)">
+        <span class="tab-icon">💰</span>Odds
+      </button>
+      <button class="tab-btn" onclick="switchTab('picks', this)">
+        <span class="tab-icon">⚽</span>Consolidado
+      </button>
+    </div>
+
+    <!-- PESTAÑA ELO -->
+    <div id="tab-elo" class="tab-panel active">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Partido</th>
+            <th>Fecha</th>
+            <th>ELO Local</th>
+            <th>ELO Visitante</th>
+            <th>We ELO</th>
+          </tr>
+        </thead>
+        <tbody id="elo-body"></tbody>
+      </table>
+    </div>
+
+    <!-- PESTAÑA ODDS -->
+    <div id="tab-odds" class="tab-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Partido</th>
+            <th>Fecha</th>
+            <th>Local · Empate · Visitante</th>
+            <th>Over / Under</th>
+            <th>We Mercado</th>
+          </tr>
+        </thead>
+        <tbody id="odds-body"></tbody>
+      </table>
+    </div>
+
+    <!-- PESTAÑA CONSOLIDADO -->
+    <div id="tab-picks" class="tab-panel">
+      <div class="picks-grid" id="picks-grid"></div>
+    </div>
+
   </div>
-
 </div>
 
 <footer>Datos: eloratings.net · The Odds API · Modelo Poisson</footer>
 
 <script>
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
 async function loadData() {
   try {
     const res = await fetch('picks_data.json?' + Date.now());
-    if (!res.ok) throw new Error('no file');
+    if (!res.ok) throw new Error();
     return await res.json();
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-function pct(val) { return (val * 100).toFixed(1) + '%'; }
-function pctNum(val) { return (val * 100).toFixed(0); }
-
-function renderOddsChips(matches) {
-  const el = document.getElementById('odds-chips');
-  if (!matches.length) {
-    el.innerHTML = '<span style="color:#4a5068;font-size:0.8rem">Sin partidos con cuotas disponibles actualmente.</span>';
-    return;
-  }
-  el.innerHTML = matches.map(m =>
-    `<div class="odds-chip">${m.local}<span class="dot">·</span>${m.visitante}</div>`
-  ).join('');
+function pct(v)  { return v != null ? (v * 100).toFixed(1) + '%' : '—'; }
+function pctN(v) { return v != null ? Math.round(v * 100) : 0; }
+function fmtDate(d) {
+  if (!d) return '—';
+  const [,m,day] = d.split('-');
+  const M = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${parseInt(day)} ${M[parseInt(m)-1]}`;
 }
 
+/* ---- ELO TAB ---- */
+function renderElo(picks) {
+  const tbody = document.getElementById('elo-body');
+  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos.</td></tr>'; return; }
+
+  const maxElo = Math.max(...picks.flatMap(p => [p.elo_local, p.elo_visit].filter(Boolean)));
+
+  tbody.innerHTML = picks.map(p => {
+    const barH = p.elo_local  ? Math.round((p.elo_local  / maxElo) * 100) : 0;
+    const barA = p.elo_visit ? Math.round((p.elo_visit / maxElo) * 100) : 0;
+    return `<tr>
+      <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
+      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
+      <td>
+        <div class="elo-val">${p.elo_local ?? '—'}</div>
+        <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barH}%"></div></div>
+      </td>
+      <td>
+        <div class="elo-val">${p.elo_visit ?? '—'}</div>
+        <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barA}%;background:#e05c2a"></div></div>
+      </td>
+      <td><strong>${p.we_elo ?? '—'}</strong></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- ODDS TAB ---- */
+function renderOdds(picks) {
+  const tbody = document.getElementById('odds-body');
+  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos.</td></tr>'; return; }
+
+  tbody.innerHTML = picks.map(p => {
+    const hasH2h = p.p_local != null;
+    const hasOU  = p.ou_linea != null;
+
+    const probs = hasH2h ? `
+      <div class="prob-group">
+        <div class="prob-pill pp-home">${pct(p.p_local)}</div>
+        <div class="prob-pill pp-draw">${pct(p.p_empate)}</div>
+        <div class="prob-pill pp-away">${pct(p.p_visit)}</div>
+      </div>` : '<span style="color:#4a5068">Sin cuotas</span>';
+
+    const ou = hasOU ? `
+      <div class="ou-group">
+        <span class="ou-line">${p.ou_linea}</span>
+        <span class="ou-over">Over ${pct(p.ou_over)}</span>
+        <span style="color:#1e2840">·</span>
+        <span class="ou-under">Under ${pct(p.ou_under)}</span>
+      </div>` : '—';
+
+    return `<tr>
+      <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
+      <td><span class="date-chip">${fmtDate(p.fecha)}</span></td>
+      <td>${probs}</td>
+      <td>${ou}</td>
+      <td>${p.we_market != null ? `<strong>${p.we_market}</strong>` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- PICKS TAB ---- */
 function renderPicks(picks) {
   const grid = document.getElementById('picks-grid');
-  if (!picks.length) {
-    grid.innerHTML = '<p style="color:#4a5068;font-size:0.85rem">Sin picks generados aún. Corre el modelo primero.</p>';
-    return;
-  }
+  if (!picks.length) { grid.innerHTML = '<p class="empty">Sin picks generados.</p>'; return; }
 
   grid.innerHTML = picks.map(p => {
-    const hasOdds = p.we_market !== null;
-    const hasXG   = p.we_xg !== null;
+    const hasOU = p.ou_linea != null;
 
-    const oddsRow = hasOdds ? `
-      <div class="odds-row">
-        <div class="odd-box"><div class="odd-label">Local</div><div class="odd-val">—</div></div>
-        <div class="odd-box"><div class="odd-label">Empate</div><div class="odd-val">—</div></div>
-        <div class="odd-box"><div class="odd-label">Visit.</div><div class="odd-val">—</div></div>
+    const ouBlock = hasOU ? `
+      <div class="card-ou">
+        <span class="label">Over/Under</span>
+        <span class="linea">${p.ou_linea} goles</span>
+        <span style="color:#2a3050">|</span>
+        <span class="over">Over ${pct(p.ou_over)}</span>
+        <span style="color:#2a3050">·</span>
+        <span class="under">Under ${pct(p.ou_under)}</span>
       </div>` : '';
-
-    const weMeta = [
-      `<div class="meta-item">ELO <strong>${p.we_elo}</strong></div>`,
-      hasOdds ? `<div class="meta-item">Mercado <strong>${p.we_market}</strong></div>` : '',
-      hasXG   ? `<div class="meta-item">xG <strong>${p.we_xg}</strong></div>` : '',
-      `<div class="meta-item">We final <strong>${p.we_final}</strong></div>`,
-      `<div class="meta-item">λ local <strong>${p.lambda_local}</strong></div>`,
-      `<div class="meta-item">λ visit. <strong>${p.lambda_visit}</strong></div>`,
-    ].join('');
 
     return `
     <div class="pick-card">
-      <div class="match-header">
-        <div class="match-name">
-          ${p.local}<span class="vs">vs</span>${p.visitante}
+      <div class="card-header">
+        <div>
+          <div class="card-match">${p.local}<span class="vs-sep">vs</span>${p.visitante}</div>
+          <div class="card-date">${fmtDate(p.fecha)}</div>
         </div>
         <div>
           <div class="pick-badge">${p.pick_1}</div>
@@ -311,43 +426,70 @@ function renderPicks(picks) {
         </div>
       </div>
 
-      <div class="probs">
-        <div class="prob-item">
-          <div class="prob-label">Local</div>
-          <div class="prob-bar-wrap"><div class="prob-bar home" style="width:${pctNum(p.p_local)}%"></div></div>
-          <div class="prob-value">${pct(p.p_local)}</div>
+      <div class="card-body">
+        <div>
+          <div class="card-section-title">Probabilidades</div>
+          <div class="card-probs">
+            <div class="card-prob-row">
+              <span class="card-prob-label">Local</span>
+              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-home" style="width:${pctN(p.p_local)}%"></div></div>
+              <span class="card-prob-val">${pct(p.p_local)}</span>
+            </div>
+            <div class="card-prob-row">
+              <span class="card-prob-label">Empate</span>
+              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-draw" style="width:${pctN(p.p_empate)}%"></div></div>
+              <span class="card-prob-val">${pct(p.p_empate)}</span>
+            </div>
+            <div class="card-prob-row">
+              <span class="card-prob-label">Visitante</span>
+              <div class="card-prob-bar-wrap"><div class="card-prob-bar cpb-away" style="width:${pctN(p.p_visit)}%"></div></div>
+              <span class="card-prob-val">${pct(p.p_visit)}</span>
+            </div>
+          </div>
         </div>
-        <div class="prob-item">
-          <div class="prob-label">Empate</div>
-          <div class="prob-bar-wrap"><div class="prob-bar draw" style="width:${pctNum(p.p_empate)}%"></div></div>
-          <div class="prob-value">${pct(p.p_empate)}</div>
-        </div>
-        <div class="prob-item">
-          <div class="prob-label">Visitante</div>
-          <div class="prob-bar-wrap"><div class="prob-bar away" style="width:${pctNum(p.p_visit)}%"></div></div>
-          <div class="prob-value">${pct(p.p_visit)}</div>
+        <div>
+          <div class="card-section-title">ELO</div>
+          <div class="card-elo">
+            <div class="card-elo-row">
+              <span class="card-elo-team">${p.local}</span>
+              <span class="card-elo-val">${p.elo_local ?? '—'}</span>
+            </div>
+            <div class="card-elo-row">
+              <span class="card-elo-team">${p.visitante}</span>
+              <span class="card-elo-val">${p.elo_visit ?? '—'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="alts">
-        <span style="font-size:0.72rem;color:#4a5068;align-self:center">Alternativas:</span>
-        <div class="alt-chip"><span>${p.pick_2}</span>${p.pts_2} pts</div>
-        <div class="alt-chip"><span>${p.pick_3}</span>${p.pts_3} pts</div>
+      ${ouBlock}
+
+      <div class="card-alts">
+        <span style="font-size:0.68rem;color:#4a5068;align-self:center">Alt:</span>
+        <div class="alt-chip"><b>${p.pick_2}</b>${p.pts_2} pts</div>
+        <div class="alt-chip"><b>${p.pick_3}</b>${p.pts_3} pts</div>
       </div>
 
-      <div class="meta-row">${weMeta}</div>
+      <div class="card-we">
+        <span>We ELO <strong>${p.we_elo}</strong></span>
+        ${p.we_market != null ? `<span>We Mercado <strong>${p.we_market}</strong></span>` : ''}
+        <span>We Final <strong>${p.we_final}</strong></span>
+        <span>λ local <strong>${p.lambda_local}</strong></span>
+        <span>λ visit. <strong>${p.lambda_visit}</strong></span>
+      </div>
     </div>`;
   }).join('');
 }
 
 (async () => {
   const data = await loadData();
-  if (!data) return;
+  if (!data || (!data.picks?.length && !data.partidos_con_odds?.length)) return;
 
   document.getElementById('no-data').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
-  renderOddsChips(data.partidos_con_odds || []);
+  renderElo(data.picks || []);
+  renderOdds(data.picks || []);
   renderPicks(data.picks || []);
 })();
 </script>
