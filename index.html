@@ -684,7 +684,9 @@ function renderOdds(picks) {
 }
 
 function xgBlock(p) {
-  if (p.xg_local_scored == null) return '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>';
+  if (p.xg_local_scored == null || p.xg_visit_scored == null || p.xg_local_conceded == null || p.xg_visit_conceded == null) {
+    return '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>';
+  }
   var barL = Math.min(100, Math.round(p.xg_local_scored / 4 * 100));
   var barV = Math.min(100, Math.round(p.xg_visit_scored / 4 * 100));
   return '<div class="card-elo-row" style="margin-bottom:4px">'
