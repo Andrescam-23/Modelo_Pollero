@@ -20,10 +20,26 @@
   header {
     text-align: center;
     margin-bottom: 28px;
+    position: relative;
   }
   header h1 { font-size: 1.9rem; font-weight: 700; }
   header h1 span { color: #f5a623; }
   header p { color: #7b8299; font-size: 0.83rem; margin-top: 5px; }
+
+  .last-update {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    font-size: 0.68rem;
+    color: #4a5068;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .last-update span {
+    display: block;
+    color: #7b8299;
+    font-weight: 600;
+  }
 
   /* ---- TABS ---- */
   .tabs {
@@ -331,6 +347,9 @@
   <header>
     <h1>⚽ Pollero <span>Mundial 2026</span></h1>
     <p>Picks recomendados · ELO + Mercado + Poisson</p>
+    <div class="last-update" id="last-update" style="display:none">
+      Última actualización<span id="last-update-ts"></span>
+    </div>
   </header>
 
   <div id="no-data" style="text-align:center;padding:60px 20px;color:#4a5068">
@@ -770,6 +789,16 @@ function renderPartidos(partidos) {
 
   document.getElementById('no-data').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+
+  if (data.ultima_actualizacion) {
+    var ts = data.ultima_actualizacion;
+    var parts = ts.split(' ');
+    var dateParts = parts[0].split('-');
+    var M = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var dateStr = parseInt(dateParts[2]) + ' ' + M[parseInt(dateParts[1]) - 1] + ' ' + dateParts[0];
+    document.getElementById('last-update-ts').textContent = dateStr + ' · ' + (parts[1] || '');
+    document.getElementById('last-update').style.display = 'block';
+  }
 
   renderElo(data.picks || []);
   renderOdds(data.picks || []);

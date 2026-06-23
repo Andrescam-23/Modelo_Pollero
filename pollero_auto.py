@@ -776,11 +776,13 @@ def export_json(results: list[dict], elo_table: dict, available_matches: list[tu
     repo_dir = os.path.join(script_dir, "Modelo_Pollero")
     out_path = os.path.join(repo_dir, "picks_data.json")
 
+    from datetime import datetime
     payload = {
         "picks": results,
         "equipos": sorted(elo_table.keys()),
         "partidos_con_odds": available_matches,
         "partidos_jugados": _build_partidos_jugados(),
+        "ultima_actualizacion": datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
