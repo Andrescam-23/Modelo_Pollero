@@ -494,15 +494,21 @@ def save_results(results: list[dict], path="picks_pollero.csv"):
 
 
 def export_json(results: list[dict], elo_table: dict, available_matches: list[tuple[str, str]]):
-    """Exporta picks_data.json para que lo consuma index.html."""
+    """Exporta picks_data.json en la carpeta del repo git (Modelo_Pollero)."""
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_dir = os.path.join(script_dir, "Modelo_Pollero")
+    out_path = os.path.join(repo_dir, "picks_data.json")
+
     payload = {
         "picks": results,
         "equipos": sorted(elo_table.keys()),
         "partidos_con_odds": [{"local": h, "visitante": a} for h, a in available_matches],
     }
-    with open("picks_data.json", "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-    print("  JSON exportado en picks_data.json  ->  abre index.html en el navegador")
+    print(f"  JSON exportado en {out_path}")
+    print("  Abre GitHub Desktop -> commit -> push y la web se actualiza.")
 
 
 def main():
