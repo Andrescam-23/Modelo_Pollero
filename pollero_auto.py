@@ -75,6 +75,7 @@ _CODE_TO_NAME = {
     "KP": "North Korea", "KR": "South Korea", "PS": "Palestine",
     "XK": "Kosovo", "GB-SCO": "Scotland", "GB-WAL": "Wales", "GB-NIR": "Northern Ireland",
     "SC": "Scotland", "WL": "Wales", "NI2": "Northern Ireland",
+    "CW": "Curacao",
 }
 
 # -----------------------------------------------------------------------
@@ -83,12 +84,18 @@ _CODE_TO_NAME = {
 ODDS_API_KEY = "66792ac538749b335af8beb37c4a669e"  # the-odds-api.com
 ODDS_API_SPORT = "soccer_fifa_world_cup"   # deporte en la API
 ODDS_API_REGIONS = "eu"                    # eu = cuotas europeas (decimales)
-ODDS_API_MARKETS = "h2h"                   # head-to-head: 1X2
+ODDS_API_MARKETS = "h2h,totals"            # head-to-head: 1X2 + over/under
+
+FD_API_KEY = "fd_a497537cbd0284f82d3ab59d5a7ed923bee005f04d97689d"  # footballdata.io
+FD_WC_LEAGUE_ID = 50   # World Cup en footballdata.io
+
+# Cuantos partidos recientes usar por equipo para calcular xG promedio
+XG_RECENT_MATCHES = 5
 
 # Pesos del modelo
-ELO_WEIGHT    = 0.20
-MARKET_WEIGHT = 0.60
-XG_WEIGHT     = 0.20
+ELO_WEIGHT    = 0.15
+MARKET_WEIGHT = 0.55
+XG_WEIGHT     = 0.30
 
 # Puntos de tu polla
 RESULT_POINTS     = 5
@@ -102,6 +109,7 @@ MAX_GOALS_PREDICT   = 6
 # Cache en memoria para no hacer dos veces el mismo request
 _elo_cache: dict = {}
 _odds_cache: list = []
+_fd_results_cache: list = []
 
 
 # -----------------------------------------------------------------------
@@ -228,8 +236,25 @@ def _fetch_elo_table() -> dict[str, float]:
     return result
 
 
+_NAME_ALIASES = {
+    "usa": "United States",
+    "united states of america": "United States",
+    "curacao": "Curacao",
+    "curaçao": "Curacao",
+    "bosnia & herzegovina": "Bosnia-Herzegovina",
+    "bosnia and herzegovina": "Bosnia-Herzegovina",
+    "ir iran": "Iran",
+    "korea republic": "South Korea",
+    "korea dpr": "North Korea",
+    "czech republic": "Czech Republic",
+}
+
 def get_elo(team_name: str) -> float | None:
     table = _fetch_elo_table()
+    # Alias conocidos
+    alias = _NAME_ALIASES.get(team_name.lower())
+    if alias and alias in table:
+        return table[alias]
     # Busqueda exacta
     if team_name in table:
         return table[team_name]
@@ -339,15 +364,108 @@ def _extract_h2h(event: dict) -> tuple[float, float, float] | None:
     return None
 
 
-def list_available_matches(api_key: str) -> list[tuple[str, str]]:
-    """Lista los partidos disponibles en la API."""
+def _extract_totals(event: dict) -> tuple[float, float, float] | None:
+    """Saca la linea over/under mas comun y sus probabilidades desviguadas."""
+    lines = {}
+    for bm in event.get("bookmakers", []):
+        for market in bm.get("markets", []):
+            if market.get("key") != "totals":
+                continue
+            for o in market.get("outcomes", []):
+                pt = o.get("point")
+                name = o.get("name", "")
+                price = float(o.get("price", 0))
+                if pt is None or price <= 1.0:
+                    continue
+                if pt not in lines:
+                    lines[pt] = {"over": [], "under": []}
+                if name == "Over":
+                    lines[pt]["over"].append(price)
+                elif name == "Under":
+                    lines[pt]["under"].append(price)
+
+    if not lines:
+        return None
+
+    # Elegir la linea con mas casas disponibles
+    best = max(lines.items(), key=lambda x: len(x[1]["over"]) + len(x[1]["under"]))
+    pt, odds = best
+    if not odds["over"] or not odds["under"]:
+        return None
+
+    avg_over  = sum(odds["over"])  / len(odds["over"])
+    avg_under = sum(odds["under"]) / len(odds["under"])
+    raw = [1 / avg_over, 1 / avg_under]
+    s = sum(raw)
+    p_over, p_under = raw[0] / s, raw[1] / s
+    return float(pt), round(p_over, 3), round(p_under, 3)
+
+
+def get_full_odds(home: str, away: str, api_key: str) -> dict | None:
+    """Retorna dict con h2h, totals y fecha para un partido, o None."""
+    if not api_key:
+        return None
+    try:
+        events = _fetch_odds(api_key)
+    except RuntimeError as e:
+        print(f"  [ODDS] Advertencia: {e}")
+        return None
+
+    home_low = home.lower()
+    away_low = away.lower()
+
+    for event in events:
+        eh = event.get("home_team", "").lower()
+        ea = event.get("away_team", "").lower()
+        flipped = False
+        if (home_low in eh or eh in home_low) and (away_low in ea or ea in away_low):
+            pass
+        elif (away_low in eh or eh in away_low) and (home_low in ea or ea in home_low):
+            flipped = True
+        else:
+            continue
+
+        h2h = _extract_h2h(event)
+        if h2h and flipped:
+            h2h = (h2h[2], h2h[1], h2h[0])
+
+        totals = _extract_totals(event)
+        fecha = event.get("commence_time", "")[:10]
+
+        return {"h2h": h2h, "totals": totals, "fecha": fecha}
+    return None
+
+
+def list_available_matches(api_key: str) -> list[dict]:
+    """Lista los partidos disponibles con h2h, totals y fecha."""
     if not api_key:
         return []
     try:
         events = _fetch_odds(api_key)
-        return [(e.get("home_team", ""), e.get("away_team", "")) for e in events]
     except RuntimeError:
         return []
+
+    result = []
+    for e in events:
+        h2h = _extract_h2h(e)
+        totals = _extract_totals(e)
+        fecha = e.get("commence_time", "")[:10]
+        if h2h:
+            ph, pd, pa = devig(*h2h)
+        else:
+            ph = pd = pa = None
+        result.append({
+            "local": e.get("home_team", ""),
+            "visitante": e.get("away_team", ""),
+            "fecha": fecha,
+            "p_local": round(ph, 3) if ph else None,
+            "p_empate": round(pd, 3) if pd else None,
+            "p_visit": round(pa, 3) if pa else None,
+            "ou_linea": totals[0] if totals else None,
+            "ou_over": totals[1] if totals else None,
+            "ou_under": totals[2] if totals else None,
+        })
+    return result
 
 
 # -----------------------------------------------------------------------
@@ -384,55 +502,183 @@ def _resolve_team(label: str, table: dict) -> tuple[str, float]:
             return name, elo
 
 
-def _get_api_key() -> str:
-    if ODDS_API_KEY:
-        return ODDS_API_KEY
-    print("\n  Para obtener cuotas necesitas una API key gratuita de the-odds-api.com")
-    key = _input("  API Key (Enter para omitir cuotas): ")
-    return key
+# -----------------------------------------------------------------------
+# FOOTBALLDATA.IO — resultados y xG del Mundial
+# -----------------------------------------------------------------------
+def _fetch_fd_results() -> list:
+    """Descarga todos los resultados del WC desde footballdata.io."""
+    global _fd_results_cache
+    if _fd_results_cache:
+        return _fd_results_cache
+
+    print("  [FD] Descargando resultados del Mundial desde footballdata.io...")
+    url = f"https://footballdata.io/api/v1/fixtures/results?league_id={FD_WC_LEAGUE_ID}"
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0",
+        "Authorization": f"Bearer {FD_API_KEY}",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception as e:
+        print(f"  [FD] Advertencia: no se pudieron descargar resultados ({e})")
+        return []
+
+    matches = data.get("data", {}).get("matches", [])
+    print(f"  [FD] {len(matches)} resultados cargados.")
+    _fd_results_cache = matches
+    return matches
 
 
-def run_match(elo_table: dict, api_key: str):
-    print("\n" + "="*55)
-    print("  NUEVO PARTIDO")
-    print("="*55)
+def _normalize_fd_name(name: str) -> str:
+    """Normaliza nombres de footballdata.io para comparar con los del modelo."""
+    aliases = {
+        "usa": "United States",
+        "united states": "United States",
+        "bosnia and herzegovina": "Bosnia-Herzegovina",
+        "bosnia & herzegovina": "Bosnia-Herzegovina",
+        "congo dr": "DR Congo",
+        "dr congo": "DR Congo",
+        "ir iran": "Iran",
+        "korea republic": "South Korea",
+        "republic of ireland": "Republic of Ireland",
+        "curacao": "Curacao",
+        "curaçao": "Curacao",
+    }
+    return aliases.get(name.lower(), name)
 
-    home_name, elo_home = _resolve_team("LOCAL", elo_table)
-    away_name, elo_away = _resolve_team("VISITANTE", elo_table)
 
-    # Ventaja de sede
-    adv_raw = _input("  Ventaja ELO por sede para el local (Enter = 0): ")
-    home_adv = float(adv_raw) if adv_raw.replace(".", "").lstrip("-").isdigit() else 0.0
+_ELO_PROMEDIO_WC = 1850.0  # ELO promedio de los equipos del Mundial 2026
 
-    # Cuotas
-    odds = get_odds_for_match(home_name, away_name, api_key)
-    if odds:
-        oh, od, oa = odds
-        print(f"  [ODDS] {home_name} {oh:.2f} / Empate {od:.2f} / {away_name} {oa:.2f}")
-    else:
-        print("  [ODDS] Sin cuotas disponibles para este partido.")
+def get_team_recent_xg(team_name: str, elo_table: dict, n: int = XG_RECENT_MATCHES) -> dict | None:
+    """Retorna xG ajustado por calidad del rival.
 
-    # Total goles
-    tg_raw = _input(f"  Total goles esperados del mercado over/under (Enter = {DEFAULT_TOTAL_GOALS}): ")
-    total_goals = float(tg_raw) if tg_raw.replace(".", "").isdigit() else DEFAULT_TOTAL_GOALS
+    El xG crudo se escala por el ratio ELO_promedio / ELO_rival:
+      - Si el rival era débil (ELO 1500), el xG generado se divide ~1.23  (se penaliza)
+      - Si el rival era fuerte (ELO 2100), el xG generado se multiplica ~1.14 (se premia)
+    Esto evita que golear a un rival malo infle el lambda del equipo.
+    """
+    results = _fetch_fd_results()
+    if not results:
+        return None
 
-    # xG opcional
-    xg_raw_h = _input(f"  xG ponderado de {home_name} (Enter = omitir): ")
-    xg_raw_a = _input(f"  xG ponderado de {away_name} (Enter = omitir): ")
-    a_hat_home = float(xg_raw_h) if xg_raw_h.replace(".", "").isdigit() else None
-    a_hat_away = float(xg_raw_a) if xg_raw_a.replace(".", "").isdigit() else None
+    team_low = team_name.lower()
+    team_matches = []
 
-    # ---- Calcular ----
-    we_elo = elo_we(elo_home, elo_away, home_adv)
+    for m in results:
+        if m.get("season", {}).get("season_id") != 618:
+            continue
+        if m.get("game_week", 0) == 0:
+            continue
+        ht_raw = m["home_team"]["team_name"]
+        at_raw = m["away_team"]["team_name"]
+        ht = _normalize_fd_name(ht_raw).lower()
+        at = _normalize_fd_name(at_raw).lower()
+        xg = m.get("stats", {}).get("xg")
+        if xg is None or (xg["home"] == 0 and xg["away"] == 0):
+            continue
+        score = m.get("score", {})
+
+        rival_name = None
+        xg_scored = xg_conceded = goals_scored = goals_conceded = None
+
+        if ht == team_low or team_low in ht or ht in team_low:
+            rival_name    = _normalize_fd_name(at_raw)
+            xg_scored     = xg["home"]
+            xg_conceded   = xg["away"]
+            goals_scored  = score.get("home", 0)
+            goals_conceded= score.get("away", 0)
+        elif at == team_low or team_low in at or at in team_low:
+            rival_name    = _normalize_fd_name(ht_raw)
+            xg_scored     = xg["away"]
+            xg_conceded   = xg["home"]
+            goals_scored  = score.get("away", 0)
+            goals_conceded= score.get("home", 0)
+
+        if rival_name is None:
+            continue
+
+        # Peso por ELO del rival (ratio respecto al promedio del torneo)
+        rival_elo = get_elo(rival_name) or _ELO_PROMEDIO_WC
+        elo_weight = rival_elo / _ELO_PROMEDIO_WC  # >1 si rival fuerte, <1 si débil
+
+        team_matches.append({
+            "xg_scored":     xg_scored,
+            "xg_conceded":   xg_conceded,
+            "goals_scored":  goals_scored,
+            "goals_conceded":goals_conceded,
+            "elo_weight":    elo_weight,
+            "rival_elo":     rival_elo,
+            "rival_name":    rival_name,
+            "date":          m["match_date"],
+        })
+
+    if not team_matches:
+        return None
+
+    team_matches.sort(key=lambda x: x["date"], reverse=True)
+    recent = team_matches[:n]
+
+    # Promedio ponderado por ELO del rival
+    total_w = sum(r["elo_weight"] for r in recent)
+    xg_scored_adj   = sum(r["xg_scored"]    * r["elo_weight"] for r in recent) / total_w
+    xg_conceded_adj = sum(r["xg_conceded"]  * r["elo_weight"] for r in recent) / total_w
+
+    return {
+        "xg_scored":    round(xg_scored_adj, 3),
+        "xg_conceded":  round(xg_conceded_adj, 3),
+        "goals_scored":  round(sum(r["goals_scored"]   for r in recent) / len(recent), 2),
+        "goals_conceded":round(sum(r["goals_conceded"] for r in recent) / len(recent), 2),
+        "partidos": len(recent),
+    }
+
+
+def xg_we(xg_home: float, xg_away: float) -> float:
+    """We basado en xG usando la formula de ELO adaptada a goles esperados."""
+    # Convertir xG a probabilidades via grilla de Poisson
+    grid, _, _ = build_grid(xg_home, xg_away)
+    return expected_score(grid)
+
+
+def calc_match(home_name: str, away_name: str, elo_table: dict, api_key: str) -> dict | None:
+    """Calcula el pick para un partido automaticamente sin input del usuario."""
+    elo_home = get_elo(home_name)
+    elo_away = get_elo(away_name)
+
+    if elo_home is None or elo_away is None:
+        print(f"  [SKIP] Sin ELO para {home_name} o {away_name}")
+        return None
+
+    full   = get_full_odds(home_name, away_name, api_key)
+    odds   = full["h2h"]    if full else None
+    totals = full["totals"] if full else None
+    fecha  = full["fecha"]  if full else ""
+
+    # xG reciente del WC ajustado por calidad de rivales
+    xg_home_stats = get_team_recent_xg(home_name, elo_table)
+    xg_away_stats = get_team_recent_xg(away_name, elo_table)
+
+    we_elo = elo_we(elo_home, elo_away)
 
     we_market = None
+    market_p_local = market_p_empate = market_p_visit = None
     if odds:
-        ph, pd, pa = devig(*odds)
-        we_market = ph + 0.5 * pd
+        mp_h, mp_d, mp_a = devig(*odds)
+        market_p_local  = round(mp_h, 3)
+        market_p_empate = round(mp_d, 3)
+        market_p_visit  = round(mp_a, 3)
+        we_market = mp_h + 0.5 * mp_d
 
+    # xG We: promedio de xG anotado del local vs xG concedido del visitante (y viceversa)
     we_xg = None
-    if a_hat_home is not None and a_hat_away is not None:
-        we_xg = expected_score(build_grid(a_hat_home, a_hat_away)[0])
+    xg_lambda_home = xg_lambda_away = None
+    if xg_home_stats and xg_away_stats:
+        # Lambda estimado: promedio entre xG anotado propio y xG concedido del rival
+        xg_lambda_home = (xg_home_stats["xg_scored"] + xg_away_stats["xg_conceded"]) / 2
+        xg_lambda_away = (xg_away_stats["xg_scored"] + xg_home_stats["xg_conceded"]) / 2
+        xg_lambda_home = max(0.3, xg_lambda_home)
+        xg_lambda_away = max(0.3, xg_lambda_away)
+        we_xg = xg_we(xg_lambda_home, xg_lambda_away)
 
     we_final = blend_we([
         (we_elo,    ELO_WEIGHT),
@@ -440,43 +686,47 @@ def run_match(elo_table: dict, api_key: str):
         (we_xg,     XG_WEIGHT),
     ])
 
+    # Total de goles: si hay xG reciente, usarlo; si no, usar O/U del mercado
+    if xg_lambda_home and xg_lambda_away:
+        total_goals = xg_lambda_home + xg_lambda_away
+    elif totals:
+        total_goals = totals[0]
+    else:
+        total_goals = DEFAULT_TOTAL_GOALS
+
     lh, la = solve_lambdas(total_goals, we_final)
     grid, pa_dist, pb_dist = build_grid(lh, la)
     cands, (ph, pd, paw) = recommend(grid, pa_dist, pb_dist)
     top = cands[:3]
 
-    # ---- Mostrar resultados ----
-    print()
-    print(f"  {'='*50}")
-    print(f"  {home_name}  vs  {away_name}")
-    print(f"  {'='*50}")
-    print(f"  We Elo     : {we_elo:.3f}")
-    if we_market is not None:
-        print(f"  We mercado : {we_market:.3f}")
-    if we_xg is not None:
-        print(f"  We xG      : {we_xg:.3f}")
-    print(f"  We FINAL   : {we_final:.3f}")
-    print()
-    print(f"  P(local)   : {ph:.1%}")
-    print(f"  P(empate)  : {pd:.1%}")
-    print(f"  P(visit.)  : {paw:.1%}")
-    print()
-    print(f"  λ local    : {lh:.2f} goles esperados")
-    print(f"  λ visita.  : {la:.2f} goles esperados")
-    print()
-    print(f"  PICK RECOMENDADO : {top[0][0]}-{top[0][1]}  ({top[0][2]:.2f} pts esp.)")
-    print(f"  Alternativa 2    : {top[1][0]}-{top[1][1]}  ({top[1][2]:.2f} pts esp.)")
-    print(f"  Alternativa 3    : {top[2][0]}-{top[2][1]}  ({top[2][2]:.2f} pts esp.)")
-    print()
+    xg_info = ""
+    if xg_lambda_home and xg_lambda_away:
+        xg_info = f" | xG {xg_lambda_home:.2f}-{xg_lambda_away:.2f}"
+    print(f"  {home_name} vs {away_name}  ->  {top[0][0]}-{top[0][1]}  ({top[0][2]:.2f} pts){xg_info}")
 
     return {
         "local": home_name, "visitante": away_name,
+        "fecha": fecha,
+        "elo_local": round(elo_home), "elo_visit": round(elo_away),
         "we_elo": round(we_elo, 3),
         "we_market": round(we_market, 3) if we_market else None,
         "we_xg": round(we_xg, 3) if we_xg else None,
         "we_final": round(we_final, 3),
+        # xG reciente por equipo
+        "xg_local_scored":   xg_home_stats["xg_scored"]   if xg_home_stats else None,
+        "xg_local_conceded": xg_home_stats["xg_conceded"] if xg_home_stats else None,
+        "xg_visit_scored":   xg_away_stats["xg_scored"]   if xg_away_stats else None,
+        "xg_visit_conceded": xg_away_stats["xg_conceded"] if xg_away_stats else None,
+        "xg_partidos_local": xg_home_stats["partidos"]    if xg_home_stats else None,
+        "xg_partidos_visit": xg_away_stats["partidos"]    if xg_away_stats else None,
+        # Probabilidades del modelo Poisson (para Consolidado)
         "p_local": round(ph, 3), "p_empate": round(pd, 3), "p_visit": round(paw, 3),
+        # Probabilidades desviguadas del mercado (para Odds)
+        "market_p_local": market_p_local, "market_p_empate": market_p_empate, "market_p_visit": market_p_visit,
         "lambda_local": round(lh, 2), "lambda_visit": round(la, 2),
+        "ou_linea": totals[0] if totals else None,
+        "ou_over": totals[1] if totals else None,
+        "ou_under": totals[2] if totals else None,
         "pick_1": f"{top[0][0]}-{top[0][1]}", "pts_1": round(top[0][2], 2),
         "pick_2": f"{top[1][0]}-{top[1][1]}", "pts_2": round(top[1][2], 2),
         "pick_3": f"{top[2][0]}-{top[2][1]}", "pts_3": round(top[2][2], 2),
@@ -493,6 +743,32 @@ def save_results(results: list[dict], path="picks_pollero.csv"):
     print(f"  Resultados guardados en {path}")
 
 
+def _build_partidos_jugados() -> list[dict]:
+    """Retorna lista de partidos jugados del WC con resultado y xG, ordenados por fecha desc."""
+    results = _fetch_fd_results()
+    partidos = []
+    for m in results:
+        if m.get("season", {}).get("season_id") != 618:
+            continue
+        if m.get("game_week", 0) == 0:
+            continue
+        xg = m.get("stats", {}).get("xg", {})
+        score = m.get("score", {})
+        partidos.append({
+            "fecha":      m["match_date"][:10],
+            "local":      m["home_team"]["team_name"],
+            "visitante":  m["away_team"]["team_name"],
+            "goles_local":    score.get("home"),
+            "goles_visit":    score.get("away"),
+            "xg_local":   round(xg.get("home", 0), 2),
+            "xg_visit":   round(xg.get("away", 0), 2),
+            "ganador":    score.get("winner"),  # "home" | "away" | "draw"
+            "game_week":  m.get("game_week", 0),
+        })
+    partidos.sort(key=lambda x: x["fecha"], reverse=True)
+    return partidos
+
+
 def export_json(results: list[dict], elo_table: dict, available_matches: list[tuple[str, str]]):
     """Exporta picks_data.json en la carpeta del repo git (Modelo_Pollero)."""
     import os
@@ -503,7 +779,8 @@ def export_json(results: list[dict], elo_table: dict, available_matches: list[tu
     payload = {
         "picks": results,
         "equipos": sorted(elo_table.keys()),
-        "partidos_con_odds": [{"local": h, "visitante": a} for h, a in available_matches],
+        "partidos_con_odds": available_matches,
+        "partidos_jugados": _build_partidos_jugados(),
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -516,37 +793,30 @@ def main():
     print("#   POLLERO AUTOMATIZADO - MUNDIAL 2026            #")
     print("#"*55)
 
-    # Cargar ELO una sola vez
     try:
         elo_table = _fetch_elo_table()
     except RuntimeError as e:
         print(f"\nERROR al cargar ELO: {e}")
-        print("Verifica tu conexion a internet e intenta de nuevo.")
         sys.exit(1)
 
-    api_key = _get_api_key()
-    available = list_available_matches(api_key)
+    print("  [ODDS] Descargando partidos y cuotas...")
+    available = list_available_matches(ODDS_API_KEY)
 
-    if available:
-        print(f"\n  Partidos con cuotas disponibles ({len(available)}):")
-        for h, a in available:
-            print(f"    {h}  vs  {a}")
+    if not available:
+        print("  Sin partidos disponibles en The Odds API.")
+        sys.exit(0)
+
+    print(f"  {len(available)} partidos encontrados. Calculando picks...\n")
 
     results = []
-    while True:
-        try:
-            result = run_match(elo_table, api_key)
+    for p in available:
+        result = calc_match(p["local"], p["visitante"], elo_table, ODDS_API_KEY)
+        if result:
             results.append(result)
-        except (KeyboardInterrupt, EOFError):
-            break
-
-        again = _input("  Predecir otro partido? (s/n): ")
-        if again.lower() not in ("s", "si", "y", "yes"):
-            break
 
     save_results(results)
     export_json(results, elo_table, available)
-    print("\n  Hasta la proxima!\n")
+    print(f"\n  Listo! {len(results)} picks calculados y exportados.\n")
 
 
 if __name__ == "__main__":
