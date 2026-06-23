@@ -675,6 +675,36 @@ function renderOdds(picks) {
   }).join('');
 }
 
+function xgBlock(p) {
+  if (p.xg_local_scored == null) {
+    return '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>';
+  }
+  const barL = Math.min(100, Math.round(p.xg_local_scored / 4 * 100));
+  const barV = Math.min(100, Math.round(p.xg_visit_scored / 4 * 100));
+  return '<div class="card-elo-row" style="margin-bottom:4px">'
+    + '<span class="card-elo-team">' + p.local + '</span>'
+    + '<span style="font-size:0.8rem">'
+    + '<span style="color:#4c8ef5;font-weight:700">' + p.xg_local_scored.toFixed(2) + '</span>'
+    + '<span style="color:#4a5068;font-size:0.7rem"> gen · </span>'
+    + '<span style="color:#e05c2a;font-weight:700">' + p.xg_local_conceded.toFixed(2) + '</span>'
+    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span>'
+    + '</span></div>'
+    + '<div class="card-prob-bar-wrap" style="margin-bottom:8px">'
+    + '<div class="card-prob-bar cpb-home" style="width:' + barL + '%"></div></div>'
+    + '<div class="card-elo-row" style="margin-bottom:4px">'
+    + '<span class="card-elo-team">' + p.visitante + '</span>'
+    + '<span style="font-size:0.8rem">'
+    + '<span style="color:#4c8ef5;font-weight:700">' + p.xg_visit_scored.toFixed(2) + '</span>'
+    + '<span style="color:#4a5068;font-size:0.7rem"> gen · </span>'
+    + '<span style="color:#e05c2a;font-weight:700">' + p.xg_visit_conceded.toFixed(2) + '</span>'
+    + '<span style="color:#4a5068;font-size:0.7rem"> conc</span>'
+    + '</span></div>'
+    + '<div class="card-prob-bar-wrap">'
+    + '<div class="card-prob-bar cpb-away" style="width:' + barV + '%"></div></div>'
+    + '<div style="font-size:0.62rem;color:#4a5068;margin-top:6px">'
+    + (p.xg_partidos_local || 0) + 'P local · ' + (p.xg_partidos_visit || 0) + 'P visit</div>';
+}
+
 /* ---- PICKS TAB ---- */
 function renderPicks(picks) {
   const grid = document.getElementById('picks-grid');
@@ -730,33 +760,7 @@ function renderPicks(picks) {
         <div>
           <div class="card-section-title">xG ajustado por rival</div>
           <div class="card-elo">
-            ${p.xg_local_scored != null ? `
-              <div class="card-elo-row" style="margin-bottom:4px">
-                <span class="card-elo-team">${p.local}</span>
-                <span style="font-size:0.8rem">
-                  <span style="color:#4c8ef5;font-weight:700">${p.xg_local_scored.toFixed(2)}</span>
-                  <span style="color:#4a5068;font-size:0.7rem"> gen · </span>
-                  <span style="color:#e05c2a;font-weight:700">${p.xg_local_conceded.toFixed(2)}</span>
-                  <span style="color:#4a5068;font-size:0.7rem"> conc</span>
-                </span>
-              </div>
-              <div class="card-prob-bar-wrap" style="margin-bottom:8px">
-                <div class="card-prob-bar cpb-home" style="width:${Math.min(100,Math.round(p.xg_local_scored/4*100))}%"></div>
-              </div>
-              <div class="card-elo-row" style="margin-bottom:4px">
-                <span class="card-elo-team">${p.visitante}</span>
-                <span style="font-size:0.8rem">
-                  <span style="color:#4c8ef5;font-weight:700">${p.xg_visit_scored.toFixed(2)}</span>
-                  <span style="color:#4a5068;font-size:0.7rem"> gen · </span>
-                  <span style="color:#e05c2a;font-weight:700">${p.xg_visit_conceded.toFixed(2)}</span>
-                  <span style="color:#4a5068;font-size:0.7rem"> conc</span>
-                </span>
-              </div>
-              <div class="card-prob-bar-wrap">
-                <div class="card-prob-bar cpb-away" style="width:${Math.min(100,Math.round(p.xg_visit_scored/4*100))}%"></div>
-              </div>
-              <div style="font-size:0.62rem;color:#4a5068;margin-top:6px">${p.xg_partidos_local ?? 0}P local · ${p.xg_partidos_visit ?? 0}P visit</div>
-            ` : '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>'}
+            ${xgBlock(p)}
           </div>
         </div>
       </div>
