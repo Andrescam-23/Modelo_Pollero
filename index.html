@@ -368,8 +368,7 @@
             <th>ELO Local</th>
             <th>ELO Visitante</th>
             <th>Diferencia</th>
-            <th>xG Local</th>
-            <th>xG Visitante</th>
+            <th>Pronóstico</th>
           </tr>
         </thead>
         <tbody id="elo-body"></tbody>
@@ -419,109 +418,148 @@
         <!-- Resumen general -->
         <div class="help-card full">
           <h3>¿Qué es esto?</h3>
-          <p>Esta página calcula automáticamente los picks recomendados para la polla del Mundial 2026. Combina tres fuentes de información: el <strong>ranking ELO</strong> de los equipos (historial acumulado), las <strong>cuotas del mercado de apuestas</strong> (consenso de casas europeas) y el <strong>xG reciente en el torneo</strong> (goles esperados reales de los partidos ya jugados). Con eso calibra un modelo de Poisson que predice el marcador más valioso para tu polla.</p>
+          <p>Esta página calcula automáticamente los picks recomendados para la polla del Mundial 2026. No adivina: usa tres fuentes de datos reales — el <strong>ranking ELO histórico</strong> de cada selección, las <strong>cuotas en vivo de casas de apuestas europeas</strong> y el <strong>xG (goles esperados) ajustado por calidad de rival</strong> de los partidos ya jugados en el torneo. Con esas tres fuentes calibra un modelo estadístico de Poisson que estima cuántos goles debería hacer cada equipo, y de ahí extrae el marcador que maximiza los puntos esperados en tu polla — no el más probable, sino el más rentable dadas las reglas del juego.</p>
         </div>
 
         <!-- Fuentes de datos -->
         <div class="help-card">
           <h3>📡 Fuentes de datos</h3>
           <ul>
-            <li><strong>ELO</strong> — eloratings.net, se actualiza diariamente. Mide la fuerza histórica acumulada de cada selección.</li>
-            <li><strong>Cuotas</strong> — The Odds API, agrega cuotas de múltiples casas de apuestas europeas en tiempo real.</li>
-            <li><strong>xG</strong> — footballdata.io, provee los goles esperados (xG) de cada partido ya jugado en el torneo.</li>
-            <li><strong>Modelo</strong> — Distribución de Poisson calibrada con las tres fuentes anteriores.</li>
+            <li><strong>eloratings.net</strong> — Tabla ELO mundial actualizada diariamente. Refleja el historial acumulado de resultados de cada selección desde 1872, ponderando más los partidos recientes y los torneos importantes.</li>
+            <li><strong>The Odds API</strong> — Agrega cuotas de múltiples casas de apuestas europeas (Bet365, Pinnacle, etc.) en tiempo real para los mercados 1X2 y Over/Under.</li>
+            <li><strong>footballdata.io</strong> — Resultados y estadísticas de todos los partidos del Mundial 2026, incluyendo xG (goles esperados) partido a partido.</li>
           </ul>
         </div>
 
         <!-- Pestañas -->
         <div class="help-card">
-          <h3>🗂️ Pestañas</h3>
+          <h3>🗂️ Qué muestra cada pestaña</h3>
           <ul>
-            <li><strong>Consolidado</strong> — Pick recomendado, probabilidades del modelo, ELO, xG reciente y over/under.</li>
-            <li><strong>ELO</strong> — Rating ELO actual, diferencia entre equipos, y xG anotado/concedido en el torneo.</li>
-            <li><strong>Odds</strong> — Probabilidades reales del mercado (desviguadas) y over/under.</li>
+            <li><strong>Consolidado</strong> — Pick recomendado por partido (marcador más valioso), probabilidades del modelo Poisson, xG ajustado de cada equipo y bloque de over/under.</li>
+            <li><strong>ELO</strong> — Rating ELO actual de cada equipo con barra proporcional, diferencia numérica entre ambos, y el xG anotado/concedido promedio en el torneo.</li>
+            <li><strong>Odds</strong> — Probabilidades del mercado de apuestas ya desviguadas (sin margen de la casa), más la línea over/under con sus probabilidades.</li>
+            <li><strong>Partidos</strong> — Todos los partidos ya jugados del Mundial con resultado final y xG de cada equipo. Azul = equipo superó su xG, naranja = quedó por debajo.</li>
           </ul>
         </div>
 
         <!-- Metodología paso a paso -->
         <div class="help-card full">
-          <h3>⚙️ Metodología paso a paso</h3>
+          <h3>⚙️ Metodología completa paso a paso</h3>
 
           <div class="help-step">
             <div class="step-num">1</div>
-            <div class="step-text"><strong>ELO de cada equipo.</strong> Se descarga la tabla de eloratings.net y se obtiene el rating actual de los dos equipos. A mayor ELO, más fuerte históricamente el equipo.</div>
+            <div class="step-text"><strong>ELO de cada equipo.</strong> Se descarga la tabla de eloratings.net con los ratings de todas las selecciones del mundo. El sistema ELO asigna puntos según resultados históricos: ganarle a un rival fuerte suma más que ganarle a uno débil, y perder contra un rival superior resta poco. Los valores típicos en el Mundial van de ~1500 (equipos débiles) a ~2100 (Argentina, Francia). La diferencia entre dos equipos determina cuánto favorece el ELO a uno sobre el otro.</div>
           </div>
 
           <div class="help-step">
             <div class="step-num">2</div>
-            <div class="step-text"><strong>Probabilidad ELO (We ELO).</strong> Se calcula la probabilidad de que el local gane según la fórmula estándar de ELO:
-              <div class="formula">We = 1 / (1 + 10 ^ (-(ELO_local − ELO_visit) / 400))</div>
-              Un valor de 0.75 significa que el modelo ELO le da 75% de chances al local.
+            <div class="step-text"><strong>We ELO — probabilidad histórica.</strong> Con los dos ratings se calcula la probabilidad de que el local gane usando la fórmula estándar de ELO:
+              <div class="formula">We_ELO = 1 / (1 + 10 ^ (-(ELO_local − ELO_visit) / 400))</div>
+              Ejemplo: England (2055) vs Ghana (1557) → diferencia de 498 → We_ELO ≈ 0.94 (94% de chances para England según historial). Este número por sí solo ignora la forma actual del torneo, por eso es solo el 15% del peso final.
             </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">3</div>
-            <div class="step-text"><strong>Cuotas del mercado (desvigue).</strong> Se obtienen las cuotas 1X2 de varias casas de apuestas y se promedian. Luego se eliminan los márgenes de la casa (<em>devig</em>) para obtener probabilidades limpias. Estas son las que aparecen en la pestaña Odds.
-              <div class="formula">p_limpia = (1/cuota) / (1/c1 + 1/cX + 1/c2)</div>
+            <div class="step-text"><strong>Cuotas del mercado y desvigue.</strong> Se obtienen las cuotas decimales 1X2 (local gana / empate / visitante gana) de varias casas de apuestas europeas y se promedian. Luego se aplica el <em>desvigue</em>: las casas incluyen un margen de ganancia (~5-8%) que hace que la suma de probabilidades implícitas supere el 100%. Dividir por esa suma elimina el margen y deja probabilidades reales:
+              <div class="formula">p_limpia = (1/cuota) / [(1/c_local) + (1/c_empate) + (1/c_visit)]</div>
+              Estas son las probabilidades que aparecen en la pestaña <strong>Odds</strong>. Representan el consenso colectivo de miles de apostadores y las propias casas.
             </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">4</div>
-            <div class="step-text"><strong>We Mercado.</strong> A partir de las probabilidades del mercado se calcula la probabilidad de no-derrota del local: <span class="formula">We_mercado = p_local + 0.5 × p_empate</span></div>
+            <div class="step-text"><strong>We Mercado — probabilidad del mercado.</strong> A partir de las probabilidades limpias, se calcula la probabilidad de no-derrota del local (ganar o empatar):
+              <div class="formula">We_mercado = p_local + 0.5 × p_empate</div>
+              El empate cuenta a medias porque es un resultado intermedio. Este indicador es el más pesado (55%) porque el mercado de apuestas tiende a ser la fuente más precisa a corto plazo.
+            </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">5</div>
-            <div class="step-text"><strong>We Final (mezcla ponderada).</strong> Se combinan las dos fuentes con pesos fijos:
-              <div class="formula">We_final = 15% × We_ELO + 55% × We_mercado + 30% × We_xG</div>
-              Si falta alguna fuente, los pesos se redistribuyen automáticamente entre las disponibles.
+            <div class="step-text"><strong>xG ajustado por calidad de rival.</strong> Se descargan los resultados del Mundial ya jugados desde footballdata.io. Para cada equipo se toman sus últimos 5 partidos y se calcula su xG promedio anotado y concedido. La clave: ese promedio <em>se pondera por el ELO del rival</em>. Generar 2.5 xG contra Uzbekistán (ELO 1500) es menos impresionante que generarlos contra Francia (ELO 2050):
+              <div class="formula">peso_partido = ELO_rival / ELO_promedio_WC (1850)</div>
+              <div class="formula">xG_ajustado = Σ(xG_partido × peso) / Σ(pesos)</div>
+              Esto evita que golear a un rival débil infle artificialmente el lambda del equipo. Lo mismo aplica al xG concedido: ceder 1.5 xG a Brasil vale más que cedérselos a Qatar.
             </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">6</div>
-            <div class="step-text"><strong>Lambdas de Poisson.</strong> Con el We_final y la línea de over/under del mercado, se calculan los goles esperados de cada equipo (λ_local y λ_visit) usando búsqueda binaria para que el modelo reproduzca exactamente la fortaleza relativa y el total de goles esperado.</div>
+            <div class="step-text"><strong>We xG — probabilidad basada en rendimiento real del torneo.</strong> Con el xG ajustado de cada equipo se estima una probabilidad de no-derrota usando la propia distribución de Poisson (se construye la grilla de marcadores con esos lambdas y se suma la probabilidad de que el local gane o empate). Esto captura la forma actual de los equipos en el torneo y tiene un peso del 30%.
+            </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">7</div>
-            <div class="step-text"><strong>Grilla de probabilidades.</strong> Con los dos lambdas se construye una matriz de probabilidades para todos los marcadores posibles (0-0 hasta 10-10) usando la distribución de Poisson independiente para cada equipo.</div>
+            <div class="step-text"><strong>We Final — combinación ponderada de las tres fuentes.</strong> Se mezclan las tres probabilidades con pesos fijos:
+              <div class="formula">We_final = 15% × We_ELO + 55% × We_mercado + 30% × We_xG</div>
+              Si alguna fuente no está disponible (por ejemplo, un equipo que aún no ha jugado en el torneo no tiene xG), los pesos se redistribuyen automáticamente entre las fuentes disponibles. El mercado domina porque procesa la mayor cantidad de información en tiempo real.
+            </div>
           </div>
 
           <div class="help-step">
             <div class="step-num">8</div>
-            <div class="step-text"><strong>Pick óptimo.</strong> Para cada marcador posible se calcula el puntaje esperado en la polla sumando:
-              <div class="formula">Pts = 5 × P(resultado) + 2 × P(goles local) + 2 × P(goles visit) + 1 × P(diferencia)</div>
-              Se muestran los 3 marcadores con mayor puntaje esperado.
+            <div class="step-text"><strong>Lambdas de Poisson (goles esperados por equipo).</strong> Con el We_final sabemos qué tan dominante debería ser un equipo. Con el xG ajustado (o la línea Over/Under del mercado si no hay xG) sabemos cuántos goles se esperan en total. A partir de esos dos datos se calculan los goles esperados individuales de cada equipo (λ_local y λ_visit) mediante búsqueda binaria: se busca la diferencia entre lambdas que reproduzca exactamente el We_final, manteniendo la suma fija en el total de goles esperado.
+              <div class="formula">λ_local + λ_visit = total_goles_esperado</div>
+              <div class="formula">solve_lambdas → We(λ_local, λ_visit) = We_final</div>
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="step-num">9</div>
+            <div class="step-text"><strong>Grilla de Poisson.</strong> Con λ_local y λ_visit se construye una matriz de 11×11 (marcadores del 0-0 al 10-10). Cada celda contiene la probabilidad de ese marcador exacto, calculada asumiendo que los goles de cada equipo siguen distribuciones de Poisson independientes:
+              <div class="formula">P(local=h, visit=a) = P_Poisson(h, λ_local) × P_Poisson(a, λ_visit)</div>
+              <div class="formula">P_Poisson(k, λ) = e^(−λ) × λ^k / k!</div>
+              La suma de todas las celdas es ≈ 1 (cubre prácticamente todos los marcadores posibles).
+            </div>
+          </div>
+
+          <div class="help-step">
+            <div class="step-num">10</div>
+            <div class="step-text"><strong>Pick óptimo — maximizar puntos esperados.</strong> Para cada marcador posible (0-0 hasta 6-6) se calcula cuántos puntos daría en promedio si lo eliges, sumando las cuatro formas de puntuar:
+              <div class="formula">Pts_esperados(h-a) = 5 × P(resultado) + 2 × P(goles_local=h) + 2 × P(goles_visit=a) + 1 × P(diferencia=h−a)</div>
+              El pick recomendado es el que maximiza esta suma. No es necesariamente el marcador más probable — por ejemplo, un 1-1 puede tener menos probabilidad que un 2-0, pero si el 1-1 suma puntos por resultado (empate), goles exactos de ambos y diferencia cero, puede valer más en puntos esperados. Se muestran los 3 mejores marcadores.
             </div>
           </div>
         </div>
 
-        <!-- Glosario -->
+        <!-- Por qué xG ajustado -->
         <div class="help-card">
-          <h3>📖 Glosario</h3>
-          <ul>
-            <li><strong>ELO</strong> — Rating numérico de fuerza. ~2000 élite, ~1600 promedio, ~1300 débil.</li>
-            <li><strong>Desvigue</strong> — Eliminar el margen de ganancia de la casa de apuestas para obtener probabilidades reales.</li>
-            <li><strong>λ (lambda)</strong> — Goles esperados de un equipo según Poisson.</li>
-            <li><strong>We</strong> — Probabilidad de no-derrota del local (win expectancy).</li>
-            <li><strong>Over/Under</strong> — Apuesta sobre si el total de goles supera o no una línea (ej. 2.5).</li>
-            <li><strong>Pts esp.</strong> — Puntos esperados en la polla si eliges ese marcador.</li>
+          <h3>🎯 Por qué ajustar el xG por rival</h3>
+          <p>Sin ajuste, un equipo que golea 7-1 a un rival débil parece mucho más peligroso de lo que es. Con el ajuste por ELO del rival:</p>
+          <ul style="margin-top:8px">
+            <li>Alemania generó 3.12 xG vs Curazao (ELO ~1500) → peso 0.81 → xG ajustado ≈ 2.53</li>
+            <li>Si Alemania generara 3.12 xG vs Francia (ELO ~2050) → peso 1.11 → xG ajustado ≈ 3.46</li>
           </ul>
+          <p style="margin-top:8px">El ELO promedio del torneo usado como referencia es <strong>1850</strong>. Cualquier rival por encima de ese valor amplifica el xG; por debajo lo reduce.</p>
         </div>
 
         <!-- Sistema de puntos -->
         <div class="help-card">
           <h3>🏆 Sistema de puntos de la polla</h3>
           <ul>
-            <li><strong>5 pts</strong> — Acertar el resultado (local / empate / visitante)</li>
-            <li><strong>2 pts</strong> — Acertar los goles del local</li>
-            <li><strong>2 pts</strong> — Acertar los goles del visitante</li>
-            <li><strong>1 pt</strong> — Acertar la diferencia de goles</li>
+            <li><strong>5 pts</strong> — Acertar el resultado (local gana / empate / visitante gana)</li>
+            <li><strong>2 pts</strong> — Acertar los goles del local exactamente</li>
+            <li><strong>2 pts</strong> — Acertar los goles del visitante exactamente</li>
+            <li><strong>1 pt</strong> — Acertar la diferencia de goles (margen)</li>
           </ul>
-          <p style="margin-top:10px">El pick recomendado es el marcador que maximiza la suma esperada de estos puntos, no necesariamente el más probable.</p>
+          <p style="margin-top:10px">Ejemplo: el partido termina 2-1 y predijiste 2-0. Aciertas resultado (+5) y goles del local (+2), pero no goles del visitante ni diferencia → <strong>7 pts</strong>. El modelo busca el marcador que en promedio suma más puntos considerando todas las combinaciones posibles.</p>
+        </div>
+
+        <!-- Glosario -->
+        <div class="help-card full">
+          <h3>📖 Glosario de términos</h3>
+          <ul style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
+            <li><strong>ELO</strong> — Rating numérico de fuerza histórica. ~2100 élite, ~1850 promedio WC, ~1500 débil.</li>
+            <li><strong>xG (Expected Goals)</strong> — Goles que un equipo "merecía" marcar según la calidad de sus ocasiones, independiente del resultado real.</li>
+            <li><strong>Desvigue</strong> — Eliminar el margen de la casa de apuestas para convertir cuotas en probabilidades reales que sumen 100%.</li>
+            <li><strong>λ (lambda)</strong> — Goles esperados de un equipo en un partido según el modelo Poisson.</li>
+            <li><strong>We (Win Expectancy)</strong> — Probabilidad de no-derrota del local: ganar + mitad de empatar.</li>
+            <li><strong>Over/Under</strong> — Apuesta sobre si el total de goles supera (Over) o no alcanza (Under) una línea fija (ej. 2.5 goles).</li>
+            <li><strong>Desvigue O/U</strong> — Las probabilidades Over/Under también se desviguan de la misma forma que el 1X2.</li>
+            <li><strong>Pts esp.</strong> — Puntos esperados en la polla si eliges ese marcador, promediando sobre todos los resultados posibles.</li>
+          </ul>
         </div>
 
       </div>
@@ -558,25 +596,34 @@ function fmtDate(d) {
 }
 
 /* ---- ELO TAB ---- */
+function eloVerdict(diff) {
+  const abs = Math.abs(diff);
+  // Umbrales basados en la escala ELO: cada 400 pts = 10x más probable de ganar
+  if (abs >= 300) return { label: diff > 0 ? 'Dominio local' : 'Dominio visitante', color: diff > 0 ? '#4c8ef5' : '#e05c2a', bg: diff > 0 ? '#0d1e3a' : '#2a0f08', bar: 100 };
+  if (abs >= 175) return { label: diff > 0 ? 'Local favorito' : 'Visitante favorito', color: diff > 0 ? '#4c8ef5' : '#e05c2a', bg: diff > 0 ? '#0d1e3a' : '#2a0f08', bar: Math.round(60 + (abs - 175) / 125 * 40) };
+  if (abs >= 75)  return { label: diff > 0 ? 'Local leve fav.' : 'Visit. leve fav.', color: diff > 0 ? '#7eb3ff' : '#ff8a65', bg: diff > 0 ? '#0a1828' : '#1e1008', bar: Math.round(30 + (abs - 75) / 100 * 30) };
+  return { label: 'Partido parejo', color: '#f5a623', bg: '#1e1800', bar: 15 };
+}
+
 function renderElo(picks) {
   const tbody = document.getElementById('elo-body');
-  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin datos.</td></tr>'; return; }
+  if (!picks.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin datos.</td></tr>'; return; }
 
   const maxElo = Math.max(...picks.flatMap(p => [p.elo_local, p.elo_visit].filter(Boolean)));
 
   tbody.innerHTML = picks.map(p => {
     const barH = p.elo_local  ? Math.round((p.elo_local  / maxElo) * 100) : 0;
-    const barA = p.elo_visit ? Math.round((p.elo_visit / maxElo) * 100) : 0;
+    const barA = p.elo_visit  ? Math.round((p.elo_visit  / maxElo) * 100) : 0;
+    const diff = (p.elo_local ?? 0) - (p.elo_visit ?? 0);
+    const v = p.elo_local != null && p.elo_visit != null ? eloVerdict(diff) : null;
 
-    const xgLocalCell = p.xg_local_scored != null
-      ? `<div style="font-weight:700;color:#4c8ef5">${p.xg_local_scored.toFixed(2)}</div>
-         <div style="font-size:0.68rem;color:#4a5068">conc. ${p.xg_local_conceded.toFixed(2)} · ${p.xg_partidos_local}P</div>`
-      : '<span style="color:#4a5068">—</span>';
-
-    const xgVisitCell = p.xg_visit_scored != null
-      ? `<div style="font-weight:700;color:#e05c2a">${p.xg_visit_scored.toFixed(2)}</div>
-         <div style="font-size:0.68rem;color:#4a5068">conc. ${p.xg_visit_conceded.toFixed(2)} · ${p.xg_partidos_visit}P</div>`
-      : '<span style="color:#4a5068">—</span>';
+    const verdictCell = v ? `
+      <div style="display:inline-flex;align-items:center;gap:8px;background:${v.bg};border:1px solid ${v.color}33;border-radius:6px;padding:5px 10px">
+        <div style="width:48px;height:4px;background:#0d1220;border-radius:2px;overflow:hidden">
+          <div style="height:4px;width:${v.bar}%;background:${v.color};border-radius:2px"></div>
+        </div>
+        <span style="font-size:0.75rem;font-weight:700;color:${v.color}">${v.label}</span>
+      </div>` : '—';
 
     return `<tr>
       <td><span class="team-name">${p.local}</span><span class="vs-sep">vs</span><span class="team-name">${p.visitante}</span></td>
@@ -589,9 +636,8 @@ function renderElo(picks) {
         <div class="elo-val">${p.elo_visit ?? '—'}</div>
         <div class="elo-bar-wrap"><div class="elo-bar" style="width:${barA}%;background:#e05c2a"></div></div>
       </td>
-      <td>${p.elo_local != null && p.elo_visit != null ? `<strong style="color:${p.elo_local >= p.elo_visit ? '#4c8ef5' : '#e05c2a'}">${p.elo_local >= p.elo_visit ? '+' : ''}${p.elo_local - p.elo_visit}</strong>` : '—'}</td>
-      <td>${xgLocalCell}</td>
-      <td>${xgVisitCell}</td>
+      <td>${v ? `<strong style="color:${v.color}">${diff > 0 ? '+' : ''}${diff}</strong>` : '—'}</td>
+      <td>${verdictCell}</td>
     </tr>`;
   }).join('');
 }
@@ -682,27 +728,35 @@ function renderPicks(picks) {
           </div>
         </div>
         <div>
-          <div class="card-section-title">ELO · xG reciente</div>
+          <div class="card-section-title">xG ajustado por rival</div>
           <div class="card-elo">
-            <div class="card-elo-row">
-              <span class="card-elo-team">${p.local}</span>
-              <span class="card-elo-val">${p.elo_local ?? '—'}</span>
-            </div>
-            <div class="card-elo-row">
-              <span class="card-elo-team">${p.visitante}</span>
-              <span class="card-elo-val">${p.elo_visit ?? '—'}</span>
-            </div>
             ${p.xg_local_scored != null ? `
-            <div style="margin-top:8px;padding-top:6px;border-top:1px solid #0f1525">
-              <div class="card-elo-row">
-                <span class="card-elo-team" style="font-size:0.7rem">xG ${p.local}</span>
-                <span style="font-size:0.75rem;color:#4c8ef5;font-weight:700">${p.xg_local_scored.toFixed(2)} <span style="color:#4a5068;font-weight:400">/ conc. ${p.xg_local_conceded.toFixed(2)}</span></span>
+              <div class="card-elo-row" style="margin-bottom:4px">
+                <span class="card-elo-team">${p.local}</span>
+                <span style="font-size:0.8rem">
+                  <span style="color:#4c8ef5;font-weight:700">${p.xg_local_scored.toFixed(2)}</span>
+                  <span style="color:#4a5068;font-size:0.7rem"> gen · </span>
+                  <span style="color:#e05c2a;font-weight:700">${p.xg_local_conceded.toFixed(2)}</span>
+                  <span style="color:#4a5068;font-size:0.7rem"> conc</span>
+                </span>
               </div>
-              <div class="card-elo-row">
-                <span class="card-elo-team" style="font-size:0.7rem">xG ${p.visitante}</span>
-                <span style="font-size:0.75rem;color:#e05c2a;font-weight:700">${p.xg_visit_scored.toFixed(2)} <span style="color:#4a5068;font-weight:400">/ conc. ${p.xg_visit_conceded.toFixed(2)}</span></span>
+              <div class="card-prob-bar-wrap" style="margin-bottom:8px">
+                <div class="card-prob-bar cpb-home" style="width:${Math.min(100,Math.round(p.xg_local_scored/4*100))}%"></div>
               </div>
-            </div>` : ''}
+              <div class="card-elo-row" style="margin-bottom:4px">
+                <span class="card-elo-team">${p.visitante}</span>
+                <span style="font-size:0.8rem">
+                  <span style="color:#4c8ef5;font-weight:700">${p.xg_visit_scored.toFixed(2)}</span>
+                  <span style="color:#4a5068;font-size:0.7rem"> gen · </span>
+                  <span style="color:#e05c2a;font-weight:700">${p.xg_visit_conceded.toFixed(2)}</span>
+                  <span style="color:#4a5068;font-size:0.7rem"> conc</span>
+                </span>
+              </div>
+              <div class="card-prob-bar-wrap">
+                <div class="card-prob-bar cpb-away" style="width:${Math.min(100,Math.round(p.xg_visit_scored/4*100))}%"></div>
+              </div>
+              <div style="font-size:0.62rem;color:#4a5068;margin-top:6px">${p.xg_partidos_local ?? 0}P local · ${p.xg_partidos_visit ?? 0}P visit</div>
+            ` : '<span style="color:#4a5068;font-size:0.78rem">Sin partidos previos</span>'}
           </div>
         </div>
       </div>
@@ -766,7 +820,7 @@ function renderPartidos(partidos) {
 
 (async () => {
   const data = await loadData();
-  if (!data || (!data.picks?.length && !data.partidos_con_odds?.length)) return;
+  if (!data || (!data.picks?.length && !data.partidos_con_odds?.length && !data.partidos_jugados?.length)) return;
 
   document.getElementById('no-data').style.display = 'none';
   document.getElementById('app').style.display = 'block';
