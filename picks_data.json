@@ -1,40 +1,6 @@
 {
   "picks": [
     {
-      "local": "France",
-      "visitante": "England",
-      "fecha": "2026-07-18",
-      "elo_local": 2121,
-      "elo_visit": 2074,
-      "we_elo": 0.567,
-      "we_market": 0.631,
-      "we_xg": null,
-      "we_final": 0.617,
-      "xg_local_scored": null,
-      "xg_local_conceded": null,
-      "xg_visit_scored": null,
-      "xg_visit_conceded": null,
-      "xg_partidos_local": null,
-      "xg_partidos_visit": null,
-      "p_local": 0.51,
-      "p_empate": 0.214,
-      "p_visit": 0.276,
-      "market_p_local": 0.509,
-      "market_p_empate": 0.244,
-      "market_p_visit": 0.247,
-      "lambda_local": 2.04,
-      "lambda_visit": 1.46,
-      "ou_linea": 3.5,
-      "ou_over": 0.451,
-      "ou_under": 0.549,
-      "pick_1": "2-1",
-      "pts_1": 7.96,
-      "pick_2": "1-0",
-      "pts_2": 7.52,
-      "pick_3": "3-1",
-      "pts_3": 7.5
-    },
-    {
       "local": "Spain",
       "visitante": "Argentina",
       "fecha": "2026-07-19",
@@ -52,21 +18,21 @@
       "xg_partidos_visit": null,
       "p_local": 0.435,
       "p_empate": 0.267,
-      "p_visit": 0.299,
-      "market_p_local": 0.417,
-      "market_p_empate": 0.314,
-      "market_p_visit": 0.269,
+      "p_visit": 0.298,
+      "market_p_local": 0.416,
+      "market_p_empate": 0.317,
+      "market_p_visit": 0.267,
       "lambda_local": 1.39,
       "lambda_visit": 1.11,
       "ou_linea": 2.5,
-      "ou_over": 0.423,
-      "ou_under": 0.577,
+      "ou_over": 0.419,
+      "ou_under": 0.581,
       "pick_1": "1-0",
       "pts_1": 7.51,
       "pick_2": "2-1",
       "pts_2": 7.23,
       "pick_3": "2-0",
-      "pts_3": 6.89
+      "pts_3": 6.9
     }
   ],
   "equipos": [
@@ -317,28 +283,17 @@
   ],
   "partidos_con_odds": [
     {
-      "local": "France",
-      "visitante": "England",
-      "fecha": "2026-07-18",
-      "p_local": 0.509,
-      "p_empate": 0.244,
-      "p_visit": 0.247,
-      "ou_linea": 3.5,
-      "ou_over": 0.451,
-      "ou_under": 0.549
-    },
-    {
       "local": "Spain",
       "visitante": "Argentina",
       "fecha": "2026-07-19",
-      "p_local": 0.417,
-      "p_empate": 0.314,
-      "p_visit": 0.269,
+      "p_local": 0.416,
+      "p_empate": 0.317,
+      "p_visit": 0.267,
       "ou_linea": 2.5,
-      "ou_over": 0.423,
-      "ou_under": 0.577
+      "ou_over": 0.419,
+      "ou_under": 0.581
     }
   ],
   "partidos_jugados": [],
-  "ultima_actualizacion": "2026-07-17 22:00"
+  "ultima_actualizacion": "2026-07-19 11:40"
 }
